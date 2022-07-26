@@ -1,14 +1,36 @@
 [tool.poetry]
-name = "aiopixiv"
-version = "0.1.0"
+name = "async-pixiv"
+version = "0.0.1"
 description = "Async Pixiv API"
 license = "MIT"
 authors = ["Arko <arko.space.cc@gmail.com>"]
+readme = "README.md"
+homepage = "https://github.com/ArkoClub/async-pixiv"
+repository = "https://github.com/ArkoClub/async-pixiv"
+keywords = ["pixiv", "async", "pixiv-api"]
+include = ["LICENSE"]
+maintainers = ["Karako <karakohear@gmail.com>"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+packages = [
+    { include = "async_pixiv", from = "src" },
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.7"
+pydantic = "^1.9.1"
 
 [tool.poetry.dev-dependencies]
+pytest = "^3.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
