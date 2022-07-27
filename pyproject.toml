@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "async-pixiv"
-version = "0.0.1"
+version = "0.0.2"
 description = "Async Pixiv API"
 license = "MIT"
 authors = ["Arko <arko.space.cc@gmail.com>"]
