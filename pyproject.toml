@@ -27,11 +27,30 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.7"
-pydantic = "^1.9.1"
+pydantic = {extras = ["email"], version = "^1.9.1"}
+aiohttp = "^3.8.1"
+aiohttp-socks = "^0.7.1"
+arko-wrapper = "^0.2.0"
+regex = { version = "^2022.7.25", optional = true }
+ujson = { version = "^5.4.0", optional = true }
+uvloop = { version = "^0.16.0", optional = true, markers = "sys_platform!='win32'" }
+playwright = { version = "^1.24.0", optional = true }
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"
 
+[tool.poetry.extras]
+regex = ["regex"]
+ujson = ["ujson"]
+playwright = ["playwright"]
+extra = ["regex", "ujson", "uvloop"]
+full = ["regex", "ujson", "uvloop", "playwright"]
+
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "official-pypi"
+url = "https://pypi.python.org/simple"
