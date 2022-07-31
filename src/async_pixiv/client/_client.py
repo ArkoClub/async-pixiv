@@ -1,9 +1,14 @@
 import logging
+from copy import deepcopy
 from functools import wraps
 from pathlib import Path
+from threading import Lock as ThreadLock
 from typing import (
     Any,
     Callable,
+    ClassVar,
+    Dict,
+    List,
     Mapping,
     NamedTuple,
     Optional,
@@ -16,19 +21,23 @@ from aiohttp.typedefs import (
     LooseHeaders,
     StrOrURL,
 )
+from arkowrapper import ArkoWrapper
 from typing_extensions import ParamSpec
 
+from async_pixiv.client._section import SectionType
 from async_pixiv.error import (
     LoginError,
     OauthError,
 )
-from arkowrapper import ArkoWrapper
-from async_pixiv.model import User
+from async_pixiv.model.model import User
 from async_pixiv.utils.model import Net
 from async_pixiv.utils.typed import RequestMethod
 
 if TYPE_CHECKING:
-    from aiohttp import ClientResponse
+    from async_pixiv.client._section import USER
+    from aiohttp import (
+        ClientResponse,
+    )
 
 __all__ = ['PixivClient']
 
@@ -43,18 +52,39 @@ T = TypeVar('T')
 logger = logging.getLogger('async_pixiv.client')
 
 
-class Config(NamedTuple):
-    client_id: str
-    client_secret: str
-    user_agent: str
-
-
+# noinspection PyPep8Naming
 class PixivClient(Net):
+    _instances: ClassVar[List["PixivClient"]] = []
+
+    @classmethod
+    def get_client(cls) -> "PixivClient":
+        if cls._instances:
+            return cls._instances[0]
+        else:
+            raise ValueError("请先实列化一个 PixivClient ")
+
+    _lock: ThreadLock = ThreadLock()
+
+    class Config(NamedTuple):
+        client_id: str
+        client_secret: str
+        user_agent: str
+
     _config: Config
+    _request_headers: Dict[str, Any]
 
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
-    user: Optional[User] = None
+    account: Optional[User] = None
+    _sections: Dict[str, SectionType] = {}
+
+    @property
+    def USER(self) -> "USER":
+        with self._lock:
+            if self._sections.get('user', None) is None:
+                from async_pixiv.client._section import USER
+                self._sections['user'] = USER(self)
+        return self._sections['user']
 
     @property
     def is_logged(self) -> bool:
@@ -74,7 +104,7 @@ class PixivClient(Net):
             limit: int = 30,
             timeout: float = 10,
             proxy: Optional[StrOrURL] = None,
-            trust_env: bool = False
+            trust_env: bool = False,
     ):
         super().__init__(
             limit=limit,
@@ -83,9 +113,16 @@ class PixivClient(Net):
             trust_env=trust_env
         )
         with open(Path(__file__) / "../config", encoding='utf-8') as file:
-            self._config = Config(
+            self._config = PixivClient.Config(
                 *ArkoWrapper(file.readlines()).map(lambda x: x.strip())
             )
+        self._request_headers = {
+            'App-OS': 'ios',
+            'App-OS-Version': '12.2',
+            'App-Version': '7.6.2',
+            'user-agent': self._config.user_agent,
+        }
+        PixivClient._instances.append(self)
 
     async def _request(
             self,
@@ -95,18 +132,25 @@ class PixivClient(Net):
             headers: Optional[LooseHeaders] = None,
             data: Any = None,
     ) -> "ClientResponse":
-        if (
-                headers
-                and
-                not (
-                        'User-Agent' in headers.keys()
-                        or
-                        'user-agent' in headers.keys()
-                )
-        ):
-            headers.update({"User-Agent": self._config.user_agent})
+        request_headers = deepcopy(self._request_headers)
+        if headers is not None:
+            for key in headers:
+                request_headers[key.lower().title()] = headers[key]
+        if self.access_token is not None:
+            request_headers.update({
+                'Authorization': f"Bearer {self.access_token}"
+            })
+        if params is not None:
+            param = {}
+            for key, value in params.items():
+                if value is None:
+                    continue
+                if not isinstance(value, (int, float, str)):
+                    value = str(value)
+                param.update({key: value})
+            params = param
         return await super(PixivClient, self)._request(
-            method, url, params=params, headers=headers, data=data
+            method, url, params=params, headers=request_headers, data=data
         )
 
     async def login_with_pwd(self, username: str, password: str) -> User:
@@ -202,8 +246,8 @@ class PixivClient(Net):
             await browser.close()
         self.access_token = data["access_token"]
         self.refresh_token = data["refresh_token"]
-        self.user = User.parse_obj(data['user'])
-        return self.user
+        self.account = User.parse_obj(data['user'])
+        return self.account
 
     async def login_with_token(self, token: str) -> User:
         response = await self.post(
@@ -219,8 +263,8 @@ class PixivClient(Net):
         data = await response.json()
         self.access_token = data["access_token"]
         self.refresh_token = data["refresh_token"]
-        self.user = User.parse_obj(data['user'])
-        return self.user
+        self.account = User.parse_obj(data['user'])
+        return self.account
 
     async def login(
             self,

@@ -6,23 +6,18 @@ from typing import (
 )
 
 from pydantic import (
-    BaseModel as _Model,
     EmailStr,
     HttpUrl,
 )
 
-
-class Model(_Model):
-    def __init__(self, **kwargs):
-        self.__class__.update_forward_refs()
-        super(Model, self).__init__(**kwargs)
+from async_pixiv.model._base import PixivModel
 
 
-class Artwork(Model):
-    class PageUrl(Model):
+class Artwork(PixivModel):
+    class PageUrl(PixivModel):
         original_image_url: HttpUrl
 
-    class MetaPage(Model):
+    class MetaPage(PixivModel):
         image_urls: "ImageUrl"
 
     id: int
@@ -52,11 +47,11 @@ class Artwork(Model):
     comment_access_control: int
 
 
-class UgoiraMetadata(Model):
-    class ZipUrls(Model):
+class UgoiraMetadata(PixivModel):
+    class ZipUrls(PixivModel):
         medium: HttpUrl
 
-    class Frame(Model):
+    class Frame(PixivModel):
         file: str
         delay: int
 
@@ -64,7 +59,7 @@ class UgoiraMetadata(Model):
     frames: List[Frame]
 
 
-class User(Model):
+class User(PixivModel):
     id: int
     name: str
     account: str
@@ -76,12 +71,12 @@ class User(Model):
     mail_address: Optional[EmailStr]
 
 
-class Tag(Model):
+class Tag(PixivModel):
     name: str
     translated_name: Optional[str]
 
 
-class Comment(Model):
+class Comment(PixivModel):
     id: int
     comment: str
     date: datetime
@@ -89,12 +84,12 @@ class Comment(Model):
     parent_comment: Optional["Comment"]
 
 
-class NovelSeries(Model):
+class NovelSeries(PixivModel):
     id: int
     title: str
 
 
-class Novel(Model):
+class Novel(PixivModel):
     id: int
     title: str
     caption: str
@@ -120,14 +115,14 @@ class Novel(Model):
     comment_access_control: int
 
 
-class ProfileImg(Model):
+class ProfileImg(PixivModel):
     medium: Optional[HttpUrl]
     px_16x16: Optional[HttpUrl]
     px_50x50: Optional[HttpUrl]
     px_170x170: Optional[HttpUrl]
 
 
-class ImageUrl(Model):
+class ImageUrl(PixivModel):
     square_medium: HttpUrl
     medium: HttpUrl
     large: HttpUrl
@@ -140,7 +135,7 @@ class ArtworkType(Enum):
     manga = 'manga'
 
 
-class Profile(Model):
+class Profile(PixivModel):
     webpage: HttpUrl
     gender: str
     birth: str
@@ -168,7 +163,7 @@ class Profile(Model):
     is_using_custom_profile_image: bool
 
 
-class ProfilePublicity(Model):
+class ProfilePublicity(PixivModel):
     class Choice(Enum):
         public = 'public'
 
@@ -180,7 +175,7 @@ class ProfilePublicity(Model):
     pawoo: Choice
 
 
-class WorkSpace(Model):
+class WorkSpace(PixivModel):
     pc: Optional[str]
     monitor: Optional[str]
     tool: Optional[str]
@@ -194,11 +189,3 @@ class WorkSpace(Model):
     chair: Optional[str]
     comment: Optional[str]
     workspace_image_url: Optional[HttpUrl]
-
-
-def main():
-    print("OK")
-
-
-if __name__ == '__main__':
-    main()
