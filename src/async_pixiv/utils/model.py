@@ -70,10 +70,10 @@ class Net(object):
     _proxies: Optional[List[URL]]
     _session: Optional[ClientSession]
 
-    _lock: Lock = Lock()
+    _aio_lock: Lock = Lock()
 
     async def _init_session(self) -> ClientSession:
-        async with self._lock:
+        async with self._aio_lock:
             if self._session is None or self._session.closed:
                 proxy: Optional[URL] = None
 
@@ -132,7 +132,7 @@ class Net(object):
         return self
 
     async def close(self) -> None:
-        async with self._lock:
+        async with self._aio_lock:
             if self._session and not self._session.closed:
                 await self._session.close()
 

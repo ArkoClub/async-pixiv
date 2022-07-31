@@ -1,6 +1,14 @@
-from typing import List
+from typing import (
+    Callable,
+    List,
+    TypeVar,
+)
 
 from yarl import URL
+
+__all__ = ['proxies_from_env']
+
+T_Wrapped = TypeVar("T_Wrapped", bound=Callable)
 
 
 # noinspection PyProtectedMember
@@ -11,11 +19,3 @@ def proxies_from_env() -> List[URL]:
         for k, v in getproxies().items()
         if k in ("https", "http", "socks4", "socks5", "ws", "wss")
     ]
-
-
-def main():
-    print(proxies_from_env())
-
-
-if __name__ == '__main__':
-    main()
