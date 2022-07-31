@@ -38,6 +38,10 @@ class UserIllustsResult(PixivModel):
     next_url: Optional[HttpUrl]
 
 
+class UserBookmarksIllustsResult(UserIllustsResult):
+    pass
+
+
 class UserDetailResult(PixivModel):
     user: User
     profile: UserProfile

@@ -13,9 +13,11 @@ if TYPE_CHECKING:
     from async_pixiv.model.result import (
         UserDetailResult,
         UserIllustsResult,
+        UserBookmarksIllustsResult,
     )
 
 
+# noinspection PyProtectedMember
 class User(PixivModel):
     id: int
     name: str
@@ -28,7 +30,6 @@ class User(PixivModel):
             self, client: Optional["PixivClient"] = None, *,
             for_ios: bool = True
     ) -> "UserDetailResult":
-        # noinspection PyProtectedMember
         from async_pixiv.client._section import SearchFilter
 
         if client is None:
@@ -44,7 +45,6 @@ class User(PixivModel):
             self, client: Optional["PixivClient"] = None, *,
             for_ios: bool = True, offset: Optional[int] = None
     ) -> "UserIllustsResult":
-        # noinspection PyProtectedMember
         from async_pixiv.client._section import SearchFilter
 
         if client is None:
@@ -52,6 +52,21 @@ class User(PixivModel):
             client = PixivClient.get_client()
         return await client.USER.illusts(
             self.id, offset=offset,
+            filter=SearchFilter.ios if for_ios else SearchFilter.android,
+        )
+
+    async def bookmarks(
+            self, client: Optional["PixivClient"] = None, *,
+            for_ios: bool = True, tag: Optional[str] = None,
+            max_bookmark_id: Optional[int] = None,
+    ) -> "UserBookmarksIllustsResult":
+        from async_pixiv.client._section import SearchFilter
+
+        if client is None:
+            from async_pixiv.client import PixivClient
+            client = PixivClient.get_client()
+        return await client.USER.bookmarks(
+            self.id, tag=tag, max_bookmark_id=max_bookmark_id,
             filter=SearchFilter.ios if for_ios else SearchFilter.android,
         )
 

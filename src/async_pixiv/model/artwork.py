@@ -33,6 +33,7 @@ class Tag(PixivModel):
 class ArtWorkType(Enum):
     illust = 'illust'
     ugoira = 'ugoira'
+    manga = 'manga'
 
 
 class ArtWork(PixivModel):

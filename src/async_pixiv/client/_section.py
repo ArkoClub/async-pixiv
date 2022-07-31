@@ -1,6 +1,4 @@
-from abc import (
-    ABC,
-)
+from abc import ABC
 from enum import Enum as BaseEnum
 from typing import (
     Dict,
@@ -14,6 +12,7 @@ from typing_extensions import Literal
 from yarl import URL
 
 from async_pixiv.model.result import (
+    UserBookmarksIllustsResult,
     UserDetailResult,
     UserIllustsResult,
     UserSearchResult,
@@ -58,6 +57,7 @@ class SearchFilter(Enum):
     ios = 'for_ios'
 
 
+# noinspection PyShadowingBuiltins
 class _Section(ABC):
     _client: "PixivClient"
     _type: str = ''
@@ -69,7 +69,6 @@ class _Section(ABC):
     def __init__(self, client: "PixivClient") -> None:
         self._client = client
 
-    # noinspection PyShadowingBuiltins
     async def search(
             self,
             word: str, *,
@@ -99,9 +98,8 @@ class _Section(ABC):
         )
         return await request.json()
 
-    # noinspection PyShadowingBuiltins
     async def detail(
-            self, id: int, *, filter: Optional[Union[
+            self, id: Optional[int] = None, *, filter: Optional[Union[
                 Literal['for_android', 'for_ios'], SearchFilter
             ]] = SearchFilter.ios
     ) -> Dict:
@@ -117,10 +115,10 @@ class UserIllustType(Enum):
     manga = 'manga'
 
 
+# noinspection PyShadowingBuiltins
 class USER(_Section):
     _type = 'user'
 
-    # noinspection PyShadowingBuiltins
     async def search(
             self,
             word: str, *,
@@ -147,18 +145,18 @@ class USER(_Section):
         )
         return UserSearchResult.parse_obj(data)
 
-    # noinspection PyShadowingBuiltins
     async def detail(
-            self, id: int, *, filter: Optional[Union[
+            self, id: Optional[int] = None, *, filter: Optional[Union[
                 Literal['for_android', 'for_ios'], SearchFilter
             ]] = SearchFilter.ios
     ) -> UserDetailResult:
+        if id is None:
+            id = self._client.account.id
         data = await super(USER, self).detail(id=id, filter=filter)
         return UserDetailResult.parse_obj(data)
 
-    # noinspection PyShadowingBuiltins
     async def illusts(
-            self, id: int, *,
+            self, id: Optional[int] = None, *,
             type: Union[
                 Literal['illust', 'manga'], UserIllustType
             ] = UserIllustType.illust,
@@ -167,6 +165,8 @@ class USER(_Section):
             ]] = SearchFilter.ios,
             offset: Optional[int] = None
     ) -> UserIllustsResult:
+        if id is None:
+            id = self._client.account.id
         data = await (await self._client.get(
             V1_API / "user/illusts",
             params={
@@ -174,6 +174,25 @@ class USER(_Section):
             }
         )).json()
         return UserIllustsResult.parse_obj(data)
+
+    async def bookmarks(
+            self, id: Optional[int] = None, *,
+            tag: Optional[str] = None,
+            max_bookmark_id: Optional[int] = None,
+            filter: Optional[Union[
+                Literal['for_android', 'for_ios'], SearchFilter
+            ]] = SearchFilter.ios,
+    ) -> UserBookmarksIllustsResult:
+        if id is None:
+            id = self._client.account.id
+        data = await (await self._client.get(
+            V1_API / "user/bookmarks/illust",
+            params={
+                'user_id': id, 'filter': filter, 'tag': tag,
+                'max_bookmark_id': max_bookmark_id, 'restrict': 'public'
+            }
+        )).json()
+        return UserBookmarksIllustsResult.parse_obj(data)
 
 
 SectionType = TypeVar('SectionType', bound=_Section)
