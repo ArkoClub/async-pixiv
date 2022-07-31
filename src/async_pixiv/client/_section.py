@@ -15,6 +15,7 @@ from yarl import URL
 
 from async_pixiv.model.result import (
     UserDetailResult,
+    UserIllustsResult,
     UserSearchResult,
 )
 
@@ -165,13 +166,14 @@ class USER(_Section):
                 Literal['for_android', 'for_ios'], SearchFilter
             ]] = SearchFilter.ios,
             offset: Optional[int] = None
-    ):
+    ) -> UserIllustsResult:
         data = await (await self._client.get(
-            V1_API / "/user/illusts",
+            V1_API / "user/illusts",
             params={
                 'user_id': id, 'type': type, 'filter': filter, 'offset': offset
             }
         )).json()
+        return UserIllustsResult.parse_obj(data)
 
 
 SectionType = TypeVar('SectionType', bound=_Section)

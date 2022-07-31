@@ -10,7 +10,10 @@ from async_pixiv.model.other import ImageUrl
 
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
-    from async_pixiv.model.result import UserDetailResult
+    from async_pixiv.model.result import (
+        UserDetailResult,
+        UserIllustsResult,
+    )
 
 
 class User(PixivModel):
@@ -35,6 +38,21 @@ class User(PixivModel):
         return await client.USER.detail(
             self.id,
             filter=SearchFilter.ios if for_ios else SearchFilter.android
+        )
+
+    async def illusts(
+            self, client: Optional["PixivClient"] = None, *,
+            for_ios: bool = True, offset: Optional[int] = None
+    ) -> "UserIllustsResult":
+        # noinspection PyProtectedMember
+        from async_pixiv.client._section import SearchFilter
+
+        if client is None:
+            from async_pixiv.client import PixivClient
+            client = PixivClient.get_client()
+        return await client.USER.illusts(
+            self.id, offset=offset,
+            filter=SearchFilter.ios if for_ios else SearchFilter.android,
         )
 
 

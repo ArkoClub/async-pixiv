@@ -1,10 +1,13 @@
 from typing import (
     List,
     Optional,
-Iterator
+    Iterator,
 )
 
-from pydantic import HttpUrl,Field
+from pydantic import (
+    HttpUrl,
+    Field,
+)
 
 from async_pixiv.model._base import PixivModel
 from async_pixiv.model.artwork import ArtWork
@@ -23,11 +26,16 @@ class UserPreview(PixivModel):
 
 
 class UserSearchResult(PixivModel):
-    user_list: List[UserPreview] = Field(alias='user_previews')
+    users: List[UserPreview] = Field(alias='user_previews')
     next_url: Optional[HttpUrl]
 
     def __iter__(self) -> Iterator[UserPreview]:
-        return iter(self.user_list)
+        return iter(self.users)
+
+
+class UserIllustsResult(PixivModel):
+    illusts: List[ArtWork]
+    next_url: Optional[HttpUrl]
 
 
 class UserDetailResult(PixivModel):
