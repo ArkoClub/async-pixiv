@@ -73,8 +73,8 @@ class _Section(ABC):
     async def search(
             self,
             word: str, *,
-            short: Union[
-                Literal['date_desc', 'date_asc'],
+            sort: Union[
+                Literal['date_desc', 'date_asc', 'popular_desc', 'popular_asc'],
                 SearchShort
             ] = SearchShort.date_desc,
             duration: Optional[Union[
@@ -93,7 +93,7 @@ class _Section(ABC):
         request = await self._client.get(
             V1_API / f'search/{self._type}',
             params={
-                'word': word, 'short': short, 'duration': duration,
+                'word': word, 'sort': sort, 'duration': duration,
                 'filter': filter, 'offset': offset, **kwargs
             }
         )
@@ -111,6 +111,9 @@ class _Section(ABC):
         return await request.json()
 
 
+SectionType = TypeVar('SectionType', bound=_Section)
+
+
 class UserIllustType(Enum):
     illust = 'illust'
     manga = 'manga'
@@ -123,8 +126,8 @@ class USER(_Section):
     async def search(
             self,
             word: str, *,
-            short: Union[
-                Literal['date_desc', 'date_asc'],
+            sort: Union[
+                Literal['date_desc', 'date_asc', 'popular_desc', 'popular_asc'],
                 SearchShort
             ] = SearchShort.date_desc,
             duration: Optional[Union[
@@ -141,7 +144,7 @@ class USER(_Section):
             offset: Optional[int] = None, **kwargs
     ) -> UserSearchResult:
         data = await super(USER, self).search(
-            word=word, short=short, duration=duration, filter=filter,
+            word=word, sort=sort, duration=duration, filter=filter,
             offset=offset, **kwargs
         )
         return UserSearchResult.parse_obj(data)
