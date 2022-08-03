@@ -15,6 +15,7 @@ from async_pixiv.model.result import (
     UserBookmarksIllustsResult,
     UserDetailResult,
     UserIllustsResult,
+    UserRelatedResult,
     UserSearchResult,
 )
 
@@ -193,6 +194,23 @@ class USER(_Section):
             }
         )).json()
         return UserBookmarksIllustsResult.parse_obj(data)
+
+    async def related(
+            self, id: Optional[int] = None, *,
+            filter: Optional[Union[
+                Literal['for_android', 'for_ios'], SearchFilter
+            ]] = SearchFilter.ios,
+            offset: int = None,
+    ) -> UserRelatedResult:
+        if id is None:
+            id = self._client.account.id
+        data = await (await self._client.get(
+            V1_API / "user/related",
+            params={
+                'seed_user_id': id, 'filter': filter, 'offset': offset
+            }
+        )).json()
+        return UserRelatedResult.parse_obj(data)
 
 
 SectionType = TypeVar('SectionType', bound=_Section)

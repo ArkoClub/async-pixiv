@@ -47,3 +47,7 @@ class UserDetailResult(PixivModel):
     profile: UserProfile
     profile_publicity: UserProfilePublicity
     workspace: UserWorkSpace
+
+
+class UserRelatedResult(PixivModel):
+    users: List[UserPreview] = Field(alias='user_previews')
