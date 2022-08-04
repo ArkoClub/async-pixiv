@@ -1,4 +1,5 @@
 from abc import ABC
+from datetime import date
 from enum import Enum as BaseEnum
 from typing import (
     Dict,
@@ -257,12 +258,19 @@ class ILLUST(_Section):
             offset: Optional[int] = None,
             min_bookmarks: Optional[int] = None,
             max_bookmarks: Optional[int] = None,
+            start_date: Optional[date] = None,
+            end_date: Optional[date] = None,
             **kwargs
     ) -> IllustSearchResult:
+        if start_date is not None:
+            start_date = start_date.strftime('%Y-%m-%d')
+        if end_date is not None:
+            end_date = end_date.strftime('%Y-%m-%d')
         data = await super(ILLUST, self).search(
             word=word, sort=sort, duration=duration, filter=filter,
-            offset=offset, min_bookmarks=min_bookmarks,
-            max_bookmarks=max_bookmarks, show_r18='0'
+            offset=offset, bookmark_num_min=min_bookmarks,
+            bookmark_num_max=max_bookmarks,
+            start_date=start_date, end_date=end_date,
         )
         return IllustSearchResult.parse_obj(data)
 
