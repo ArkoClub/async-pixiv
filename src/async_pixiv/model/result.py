@@ -1,16 +1,23 @@
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from typing import (
+    Iterator,
     List,
     Optional,
-    Iterator,
 )
 
 from pydantic import (
-    HttpUrl,
     Field,
+    HttpUrl,
 )
 
 from async_pixiv.model._base import PixivModel
-from async_pixiv.model.artwork import ArtWork
+from async_pixiv.model.artwork import (
+    ArtWork,
+    Comment,
+)
 from async_pixiv.model.user import (
     User,
     UserProfile,
@@ -19,15 +26,22 @@ from async_pixiv.model.user import (
 )
 
 
+class SearchResult(ABC, PixivModel):
+    next_url: Optional[HttpUrl]
+    search_span_limit: Optional[int]
+
+    @abstractmethod
+    def __iter__(self) -> Iterator: pass
+
+
 class UserPreview(PixivModel):
     user: User
     illusts: List[ArtWork]
     is_muted: bool
 
 
-class UserSearchResult(PixivModel):
+class UserSearchResult(SearchResult):
     users: List[UserPreview] = Field(alias='user_previews')
-    next_url: Optional[HttpUrl]
 
     def __iter__(self) -> Iterator[UserPreview]:
         return iter(self.users)
@@ -51,3 +65,28 @@ class UserDetailResult(PixivModel):
 
 class UserRelatedResult(PixivModel):
     users: List[UserPreview] = Field(alias='user_previews')
+
+    def __iter__(self) -> Iterator[UserPreview]:
+        return iter(self.users)
+
+
+class IllustSearchResult(SearchResult):
+    illusts: List[ArtWork]
+
+    def __iter__(self) -> Iterator[ArtWork]:
+        return iter(self.illusts)
+
+
+class IllustDetailResult(PixivModel):
+    illust: ArtWork
+
+
+class IllustCommentResult(PixivModel):
+    total: int = Field(alias='total_comments')
+    comments: List[Comment]
+    next_url: Optional[HttpUrl]
+    access_comment: Optional[bool] = Field(alias='comment_access_control')
+
+
+class IllustRelatedResult(IllustSearchResult):
+    pass

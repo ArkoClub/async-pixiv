@@ -1,6 +1,7 @@
 import asyncio
 import sys
 from asyncio import Lock
+from enum import Enum
 from typing import (
     Any,
     List,
@@ -140,7 +141,7 @@ class Net(object):
             self,
             method: RequestMethod,
             url: StrOrURL, *,
-            params: Optional[Mapping[str, str]] = None,
+            params: Optional[Mapping[str, Any]] = None,
             headers: Optional[LooseHeaders] = None,
             data: Any = None,
     ) -> "ClientResponse":
@@ -149,13 +150,37 @@ class Net(object):
             if p.scheme in ['http', 'ws']:
                 proxy = p
                 break
+        param = dict()
+        for key, value in (params or {}).items():
+            if value in [None, {}, []]:
+                continue
+            if isinstance(value, Enum):
+                value = value.value
+            if isinstance(value, (str, int, float)):
+                param.update({key: value})
+            if isinstance(value, list):
+                if key in ["sizes", "types"]:
+                    param.update({key: ','.join(map(str, value))})
+                elif key in ["ids"]:
+                    param.update({
+                        f"{key}[]": ",".join([str(pid) for pid in value])
+                    })
+                elif key in ["viewed"]:
+                    [
+                        param.update({f"{key}[{k}]": value[k]})
+                        for k in range(len(value))
+                    ]
+                else:
+                    param.update({f"{key}[]": ','.join(map(str, value))})
+            if isinstance(value, bool):
+                param.update({key: str(value).lower()})
         return await (await self._init_session()).request(
-            method, url, params=params, headers=headers, data=data,
+            method, url, params=param, headers=headers, data=data,
             proxy=proxy
         )
 
     async def get(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, str]] = None,
+            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
             headers: Optional[LooseHeaders] = None, data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
@@ -163,7 +188,7 @@ class Net(object):
         )
 
     async def post(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, str]] = None,
+            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
             headers: Optional[LooseHeaders] = None, data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
@@ -171,7 +196,7 @@ class Net(object):
         )
 
     async def head(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, str]] = None,
+            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
             headers: Optional[LooseHeaders] = None, data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
@@ -179,7 +204,7 @@ class Net(object):
         )
 
     async def put(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, str]] = None,
+            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
             headers: Optional[LooseHeaders] = None, data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
@@ -187,7 +212,7 @@ class Net(object):
         )
 
     async def patch(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, str]] = None,
+            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
             headers: Optional[LooseHeaders] = None, data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
@@ -195,7 +220,7 @@ class Net(object):
         )
 
     async def delete(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, str]] = None,
+            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
             headers: Optional[LooseHeaders] = None, data: Any = None,
     ) -> "ClientResponse":
         return await self._request(

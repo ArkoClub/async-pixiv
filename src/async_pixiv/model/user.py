@@ -24,7 +24,7 @@ class User(PixivModel):
     name: str
     account: str
     profile_image_urls: ImageUrl
-    is_followed: bool
+    is_followed: Optional[bool]
     comment: Optional[str]
 
     async def detail(

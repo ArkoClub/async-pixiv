@@ -34,7 +34,10 @@ from async_pixiv.utils.model import Net
 from async_pixiv.utils.typed import RequestMethod
 
 if TYPE_CHECKING:
-    from async_pixiv.client._section import USER
+    from async_pixiv.client._section import (
+        USER,
+        ILLUST,
+    )
     from aiohttp import (
         ClientResponse,
     )
@@ -87,6 +90,14 @@ class PixivClient(Net):
         return self._sections['user']
 
     @property
+    def ILLUST(self) -> "ILLUST":
+        with self._lock:
+            if self._sections.get('illust', None) is None:
+                from async_pixiv.client._section import ILLUST
+                self._sections['illust'] = ILLUST(self)
+        return self._sections['illust']
+
+    @property
     def is_logged(self) -> bool:
         return self.refresh_token is not None
 
@@ -128,7 +139,7 @@ class PixivClient(Net):
             self,
             method: RequestMethod,
             url: StrOrURL, *,
-            params: Optional[Mapping[str, str]] = None,
+            params: Optional[Mapping[str, Any]] = None,
             headers: Optional[LooseHeaders] = None,
             data: Any = None,
     ) -> "ClientResponse":
@@ -140,15 +151,6 @@ class PixivClient(Net):
             request_headers.update({
                 'Authorization': f"Bearer {self.access_token}"
             })
-        if params is not None:
-            param = {}
-            for key, value in params.items():
-                if value is None:
-                    continue
-                if not isinstance(value, (int, float, str)):
-                    value = str(value)
-                param.update({key: value})
-            params = param
         return await super(PixivClient, self)._request(
             method, url, params=params, headers=request_headers, data=data
         )

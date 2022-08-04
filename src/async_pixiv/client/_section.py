@@ -2,6 +2,7 @@ from abc import ABC
 from enum import Enum as BaseEnum
 from typing import (
     Dict,
+    List,
     Optional,
     TYPE_CHECKING,
     TypeVar,
@@ -12,6 +13,10 @@ from typing_extensions import Literal
 from yarl import URL
 
 from async_pixiv.model.result import (
+    IllustCommentResult,
+    IllustDetailResult,
+    IllustRelatedResult,
+    IllustSearchResult,
     UserBookmarksIllustsResult,
     UserDetailResult,
     UserIllustsResult,
@@ -25,7 +30,7 @@ if TYPE_CHECKING:
 __all__ = [
     'SearchShort', 'SearchDuration', 'SearchFilter',
     'SectionType',
-    'USER',
+    'USER', 'ILLUST'
 ]
 
 API_HOST = URL("https://app-api.pixiv.net")
@@ -114,9 +119,11 @@ class _Section(ABC):
 SectionType = TypeVar('SectionType', bound=_Section)
 
 
-class UserIllustType(Enum):
+class IllustType(Enum):
     illust = 'illust'
     manga = 'manga'
+    ugoira = 'ugoira'
+    novel = 'novel'
 
 
 # noinspection PyShadowingBuiltins
@@ -162,8 +169,8 @@ class USER(_Section):
     async def illusts(
             self, id: Optional[int] = None, *,
             type: Union[
-                Literal['illust', 'manga'], UserIllustType
-            ] = UserIllustType.illust,
+                Literal['illust', 'manga', 'novel', 'ugoira'], IllustType
+            ] = IllustType.illust,
             filter: Optional[Union[
                 Literal['for_android', 'for_ios'], SearchFilter
             ]] = SearchFilter.ios,
@@ -216,4 +223,119 @@ class USER(_Section):
         return UserRelatedResult.parse_obj(data)
 
 
-SectionType = TypeVar('SectionType', bound=_Section)
+# noinspection PyShadowingBuiltins
+class ILLUST(_Section):
+    _type = 'illust'
+
+    async def follow(
+            self, *, offset: Optional[int] = None
+    ) -> IllustSearchResult:
+        data = await (await self._client.get(
+            V2_API / "illust/follow",
+            params={'restrict': 'public', 'offset': offset}
+        )).json()
+        return IllustSearchResult.parse_obj(data)
+
+    async def search(
+            self,
+            word: str, *,
+            sort: Union[
+                Literal['date_desc', 'date_asc', 'popular_desc', 'popular_asc'],
+                SearchShort
+            ] = SearchShort.date_desc,
+            duration: Optional[Union[
+                Literal[
+                    'within_last_day',
+                    'within_last_week',
+                    'within_last_month',
+                    'within_last_year'
+                ], SearchDuration
+            ]] = None,
+            filter: Optional[Union[
+                Literal['for_android', 'for_ios'], SearchFilter
+            ]] = SearchFilter.ios,
+            offset: Optional[int] = None,
+            min_bookmarks: Optional[int] = None,
+            max_bookmarks: Optional[int] = None,
+            **kwargs
+    ) -> IllustSearchResult:
+        data = await super(ILLUST, self).search(
+            word=word, sort=sort, duration=duration, filter=filter,
+            offset=offset, min_bookmarks=min_bookmarks,
+            max_bookmarks=max_bookmarks, show_r18='0'
+        )
+        return IllustSearchResult.parse_obj(data)
+
+    async def detail(
+            self, id: Optional[int] = None, *,
+            filter: Optional[Union[
+                Literal['for_android', 'for_ios'], SearchFilter
+            ]] = SearchFilter.ios
+    ) -> IllustDetailResult:
+        data = await super(ILLUST, self).detail(id, filter=filter)
+        return IllustDetailResult.parse_obj(data)
+
+    async def comments(
+            self, id: int, *, offset: Optional[int] = None
+    ) -> IllustCommentResult:
+        data = await (await self._client.get(
+            V1_API / "illust/comments", params={
+                'illust_id': id, "offset": offset
+            }
+        )).json()
+        return IllustCommentResult.parse_obj(data)
+
+    async def related(
+            self, id: int, *,
+            filter: Optional[Union[
+                Literal['for_android', 'for_ios'], SearchFilter
+            ]] = SearchFilter.ios,
+            offset: Optional[int] = None,
+            seed_ids: Optional[Union[List[int], int]] = None
+    ) -> IllustRelatedResult:
+        data = await (await self._client.get(
+            V2_API / "illust/related", params={
+                'illust_id': id, "offset": offset, 'filter': filter,
+                'seed_illust_ids': (
+                    [seed_ids] if seed_ids is not list else seed_ids
+                )
+            }
+        )).json()
+        return IllustRelatedResult.parse_obj(data)
+
+    async def recommended(
+            self, *, with_auth: bool = True, type: Union[
+                Literal['illust', 'manga', 'novel', 'ugoira'], IllustType
+            ] = IllustType.illust,
+            include_ranking_label: bool = True,
+            include_ranking_illusts: Optional[bool] = None,
+            offset: Optional[int] = None,
+            filter: Optional[Union[
+                Literal['for_android', 'for_ios'], SearchFilter
+            ]] = SearchFilter.ios,
+            max_bookmark_id_for_recommend: Optional[int] = None,
+            min_bookmark_id_for_recent_illust: Optional[int] = None,
+            bookmark_illust_ids: Optional[Union[List[int], int]] = None,
+            include_privacy_policy: Optional[Union[
+                str, List[Union[int, str]]
+            ]] = None,
+            viewed: Optional[List[int]] = None
+    ):
+        data = await (await self._client.get(
+            V1_API / (
+                "illust/recommended"
+                if with_auth else
+                "illust/recommended-nologin"
+            ), params={
+                'content_type': type,
+                'include_ranking_label': include_ranking_label,
+                'include_ranking_illusts': include_ranking_illusts,
+                'offset': offset, 'filter': filter, 'viewed': viewed,
+                'max_bookmark_id_for_recommend': max_bookmark_id_for_recommend,
+                'min_bookmark_id_for_recent_illust':
+                    min_bookmark_id_for_recent_illust,
+                'bookmark_illust_ids': bookmark_illust_ids,
+                'include_privacy_policy': include_privacy_policy,
+            }
+        )).json()
+        breakpoint()
