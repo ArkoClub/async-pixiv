@@ -97,6 +97,15 @@ class ArtWork(PixivModel):
     def link(self) -> URL:
         return URL(f"https://www.pixiv.net/artworks/{self.id}")
 
+    @property
+    def all_image_urls(self) -> List[URL]:
+        result = []
+        for page in self.meta_pages:
+            result.append(URL(str(
+                page.image_urls.original or page.image_urls.large
+            )))
+        return result
+
     async def detail(
             self, client: Optional["PixivClient"] = None, *,
             for_ios: bool = True
