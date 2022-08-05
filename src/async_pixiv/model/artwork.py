@@ -1,10 +1,12 @@
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import (
     Dict,
     List,
     Optional,
     TYPE_CHECKING,
+    Union,
 )
 
 from pydantic import (
@@ -124,6 +126,17 @@ class ArtWork(PixivModel):
             self.id, offset=offset, seed_ids=seed_id,
             filter=SearchFilter.ios if for_ios else SearchFilter.android
         )
+
+    async def download(
+            self, *,
+            output: Optional[Union[str, Path]] = None,
+            client: Optional["PixivClient"] = None
+    ) -> Optional[bytes]:
+        if client is None:
+            from async_pixiv.client import PixivClient
+            client = PixivClient.get_client()
+        url = str(self.image_urls.original or self.image_urls.large)
+        return await client.download(url, output=output)
 
 
 class Comment(PixivModel):

@@ -1,6 +1,7 @@
 import logging
 from copy import deepcopy
 from functools import wraps
+from io import BytesIO
 from pathlib import Path
 from threading import Lock as ThreadLock
 from typing import (
@@ -15,8 +16,10 @@ from typing import (
     TYPE_CHECKING,
     Tuple,
     TypeVar,
+    Union,
 )
 
+from aiofiles.tempfile import SpooledTemporaryFile
 from aiohttp.typedefs import (
     LooseHeaders,
     StrOrURL,
@@ -133,6 +136,7 @@ class PixivClient(Net):
             'App-OS-Version': '12.2',
             'App-Version': '7.6.2',
             'user-agent': self._config.user_agent,
+            'Referer': 'https://app-api.pixiv.net/'
         }
         PixivClient._instances.append(self)
 
@@ -279,3 +283,26 @@ class PixivClient(Net):
             return await self.login_with_token(token)
         else:
             return await self.login_with_pwd(username, password)
+
+    async def download(
+            self, url: StrOrURL, *,
+            output: Optional[Union[str, Path, BytesIO]] = None
+    ) -> Optional[bytes]:
+        if output is None:
+            out = True
+            output = BytesIO()
+        else:
+            out = False
+            output = Path(output).resolve().open('wb+')
+        content = (await self.get(url)).content
+        async with SpooledTemporaryFile(mode='wb+') as file:
+            # noinspection PyProtectedMember
+            file._file._file = output
+            while True:
+                data, is_end = await content.readchunk()
+                await file.write(data)
+                if is_end or not data:
+                    break
+            await file.seek(0)
+            if out:
+                return await file.read()
