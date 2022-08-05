@@ -123,7 +123,8 @@ class PixivClient(Net):
             proxy=proxy,
             trust_env=trust_env
         )
-        with open(Path(__file__) / "../config", encoding='utf-8') as file:
+        config_path = (Path(__file__) / "../config").resolve()
+        with open(config_path, encoding='utf-8') as file:
             self._config = PixivClient.Config(
                 *ArkoWrapper(file.readlines()).map(lambda x: x.strip())
             )
