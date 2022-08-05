@@ -49,6 +49,7 @@ class ArtWorkType(Enum):
     illust = 'illust'
     ugoira = 'ugoira'
     manga = 'manga'
+    novel = 'novel'
 
 
 # noinspection PyProtectedMember
@@ -56,6 +57,9 @@ class ArtWork(PixivModel):
     class Series(PixivModel):
         id: int
         title: str
+
+    class MetaPage(PixivModel):
+        image_urls: "ImageUrl"
 
     id: int
     title: str
@@ -74,7 +78,7 @@ class ArtWork(PixivModel):
     x_restrict: int
     series: Optional[Series]
     meta_single_page: Dict[str, HttpUrl]
-    meta_pages: List["ImageUrl"]
+    meta_pages: List[MetaPage]
     total_view: int
     total_bookmarks: int
     is_bookmarked: bool
