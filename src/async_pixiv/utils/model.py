@@ -61,8 +61,7 @@ class Config(NamedTuple):
 
 class Net(object):
     __slots__ = (
-        '_conn_kwargs', '_timeout', '_session', '_proxies',
-        '_trust_env',
+        '_conn_kwargs', '_timeout', '_session', '_proxies', '_trust_env',
     )
 
     _limit: int
