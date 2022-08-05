@@ -14,6 +14,7 @@ from pydantic import (
     HttpUrl,
     validator,
 )
+from yarl import URL
 
 from async_pixiv.model._base import PixivModel
 from async_pixiv.model.other import ImageUrl
@@ -87,6 +88,10 @@ class ArtWork(PixivModel):
         if len(self.tags) >= 1:
             return self.tags[0].name.title().replace('-', '') == 'R18'
         return False
+
+    @property
+    def link(self) -> URL:
+        return URL(f"https://www.pixiv.net/artworks/{self.id}")
 
     async def detail(
             self, client: Optional["PixivClient"] = None, *,

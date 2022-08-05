@@ -4,6 +4,7 @@ from typing import (
 )
 
 from pydantic import HttpUrl
+from yarl import URL
 
 from async_pixiv.model._base import PixivModel
 from async_pixiv.model.other import ImageUrl
@@ -26,6 +27,10 @@ class User(PixivModel):
     profile_image_urls: ImageUrl
     is_followed: Optional[bool]
     comment: Optional[str]
+
+    @property
+    def link(self) -> URL:
+        return URL(f"https://www.pixiv.net/users/{self.id}/")
 
     async def detail(
             self, client: Optional["PixivClient"] = None, *,
