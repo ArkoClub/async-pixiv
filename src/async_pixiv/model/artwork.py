@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import (
+    Any,
     Dict,
     List,
     Optional,
@@ -51,6 +52,15 @@ class ArtWorkType(Enum):
     manga = 'manga'
     novel = 'novel'
 
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, ArtWorkType):
+            return self.value == other.value
+        else:
+            try:
+                return self.value == str(other)
+            except (TypeError, ValueError):
+                return False
+
 
 # noinspection PyProtectedMember
 class ArtWork(PixivModel):
@@ -95,7 +105,7 @@ class ArtWork(PixivModel):
 
     @property
     def link(self) -> URL:
-        return URL(f"https://www.pixiv.net/artworks/{self.id}")
+        return URL(f"https://www.pixiv.net/artworks/{self.id}/")
 
     @property
     def all_image_urls(self) -> List[URL]:

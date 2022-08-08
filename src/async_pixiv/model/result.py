@@ -10,8 +10,8 @@ from typing import (
 )
 
 from pydantic import (
+    AnyHttpUrl,
     Field,
-    HttpUrl,
 )
 from typing_extensions import Self
 
@@ -32,19 +32,24 @@ if TYPE_CHECKING:
 
 
 class SearchResult(ABC, PixivModel):
-    next_url: Optional[HttpUrl]
+    next_url: Optional[AnyHttpUrl]
     search_span_limit: Optional[int]
 
     @abstractmethod
     def __iter__(self) -> Iterator:
         pass
 
-    async def next(self, client: Optional["PixivClient"] = None) -> Self:
+    async def next(
+            self, client: Optional["PixivClient"] = None
+    ) -> Optional[Self]:
         if client is None:
             from async_pixiv.client import PixivClient
             client = PixivClient.get_client()
-        data = await (await client.get(str(self.next_url))).json()
-        return self.__class__.parse_obj(data)
+        if getattr(self, 'next_url', None):
+            data = await (await client.get(str(self.next_url))).json()
+            return self.__class__.parse_obj(data)
+        else:
+            return None
 
 
 class UserPreview(PixivModel):
@@ -62,7 +67,7 @@ class UserSearchResult(SearchResult):
 
 class UserIllustsResult(PixivModel):
     illusts: List[ArtWork]
-    next_url: Optional[HttpUrl]
+    next_url: Optional[AnyHttpUrl]
 
 
 class UserBookmarksIllustsResult(UserIllustsResult):
@@ -97,7 +102,7 @@ class IllustDetailResult(PixivModel):
 class IllustCommentResult(SearchResult):
     total: int = Field(alias='total_comments')
     comments: List[Comment]
-    next_url: Optional[HttpUrl]
+    next_url: Optional[AnyHttpUrl]
     access_comment: Optional[bool] = Field(alias='comment_access_control')
 
     def __iter__(self) -> Iterator[Comment]:
@@ -106,3 +111,12 @@ class IllustCommentResult(SearchResult):
 
 class IllustRelatedResult(IllustSearchResult):
     pass
+
+
+class RecommendedResult(SearchResult):
+    illusts: List[ArtWork]
+    ranking_illusts: List[ArtWork]
+    contest_exists: bool
+
+    def __iter__(self) -> Iterator[ArtWork]:
+        return iter(self.illusts)
