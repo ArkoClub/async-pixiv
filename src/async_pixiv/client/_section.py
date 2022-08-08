@@ -18,6 +18,7 @@ from async_pixiv.model.result import (
     IllustDetailResult,
     IllustRelatedResult,
     IllustSearchResult,
+    RecommendedResult,
     UserBookmarksIllustsResult,
     UserDetailResult,
     UserIllustsResult,
@@ -328,7 +329,7 @@ class ILLUST(_Section):
                 str, List[Union[int, str]]
             ]] = None,
             viewed: Optional[List[int]] = None
-    ):
+    ) -> RecommendedResult:
         data = await (await self._client.get(
             V1_API / (
                 "illust/recommended"
@@ -346,4 +347,4 @@ class ILLUST(_Section):
                 'include_privacy_policy': include_privacy_policy,
             }
         )).json()
-        breakpoint()
+        return RecommendedResult.parse_obj(data)
