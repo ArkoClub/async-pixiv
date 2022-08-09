@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     'Tag', 'TagTranslation',
-    'ArtWork',
+    'ArtWork', 'ArtWorkType',
     'Comment',
 ]
 
