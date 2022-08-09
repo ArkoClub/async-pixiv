@@ -75,6 +75,7 @@ class PixivClient(Net):
         client_id: str
         client_secret: str
         user_agent: str
+        accept_language: str
 
     _config: Config
     _request_headers: Dict[str, Any]
@@ -136,9 +137,14 @@ class PixivClient(Net):
             'App-OS-Version': '12.2',
             'App-Version': '7.6.2',
             'user-agent': self._config.user_agent,
-            'Referer': 'https://app-api.pixiv.net/'
+            'Referer': 'https://app-api.pixiv.net/',
+            'Accept-Language': 'zh-CN,zh;q=0.9,zh-Hans;q=0.8,en;q=0.7,zh-Hant;'
+                               'q=0.6,ja;q=0.5'
         }
         PixivClient._instances.append(self)
+
+    def set_accept_language(self, language: str) -> None:
+        self._request_headers.update({'Accept-Language': language})
 
     async def _request(
             self,
