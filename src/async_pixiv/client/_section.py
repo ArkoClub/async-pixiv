@@ -1,6 +1,7 @@
 from abc import ABC
 from datetime import date
 from enum import Enum as BaseEnum
+from pathlib import Path
 from typing import (
     Dict,
     List,
@@ -348,3 +349,29 @@ class ILLUST(_Section):
             }
         )).json()
         return RecommendedResult.parse_obj(data)
+
+    async def download(
+            self, id: int, *,
+            full: bool = False,
+            filter: Optional[Union[
+                Literal['for_android', 'for_ios'], SearchFilter
+            ]] = SearchFilter.ios,
+            output: Optional[Union[str, Path]] = None
+    ) -> List[bytes]:
+        artwork = (await self.detail(id, filter=filter)).illust
+        if not full or not artwork.meta_pages:
+            return [await self._client.download(str(
+                artwork.meta_single_page.original or
+                artwork.image_urls.original or
+                artwork.image_urls.large
+            ), output=output)]
+        else:
+            result: List[bytes] = []
+            for meta_page in artwork.meta_pages:
+                result.append(
+                    await self._client.download(str(
+                        meta_page.image_urls.original or
+                        meta_page.image_urls.large
+                    ), output=output)
+                )
+            return result

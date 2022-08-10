@@ -3,7 +3,6 @@ from enum import Enum
 from pathlib import Path
 from typing import (
     Any,
-    Dict,
     List,
     Optional,
     TYPE_CHECKING,
@@ -11,8 +10,8 @@ from typing import (
 )
 
 from pydantic import (
+    AnyHttpUrl,
     Field,
-    HttpUrl,
     validator,
 )
 from yarl import URL
@@ -71,6 +70,9 @@ class ArtWork(PixivModel):
     class MetaPage(PixivModel):
         image_urls: "ImageUrl"
 
+    class MetaSinglePage(PixivModel):
+        original: Optional[AnyHttpUrl] = Field(alias="original_image_url")
+
     id: int
     title: str
     type: ArtWorkType
@@ -87,7 +89,7 @@ class ArtWork(PixivModel):
     sanity_level: int
     x_restrict: int
     series: Optional[Series]
-    meta_single_page: Dict[str, HttpUrl]
+    meta_single_page: MetaSinglePage
     meta_pages: List[MetaPage]
     total_view: int
     total_bookmarks: int
@@ -96,6 +98,10 @@ class ArtWork(PixivModel):
     is_muted: bool
     total_comments: Optional[int]
     comment_access_control: Optional[int]
+
+    @property
+    def is_nsfw(self) -> bool:
+        return self.sanity_level > 5
 
     @property
     def is_r18(self) -> bool:
@@ -157,14 +163,27 @@ class ArtWork(PixivModel):
 
     async def download(
             self, *,
+            full: bool = False,
             output: Optional[Union[str, Path]] = None,
             client: Optional["PixivClient"] = None
-    ) -> Optional[bytes]:
+    ) -> List[bytes]:
         if client is None:
             from async_pixiv.client import PixivClient
             client = PixivClient.get_client()
-        url = str(self.image_urls.original or self.image_urls.large)
-        return await client.download(url, output=output)
+        if not full or not self.meta_pages:
+            return [await client.download(str(
+                self.meta_single_page.original or
+                self.image_urls.original or
+                self.image_urls.large
+            ))]
+        else:
+            result: List[bytes] = []
+            for meta_page in self.meta_pages:
+                result.append(await client.download(str(
+                    meta_page.image_urls.original or
+                    meta_page.image_urls.large
+                ), output=output))
+            return result
 
 
 class Comment(PixivModel):

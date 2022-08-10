@@ -59,7 +59,7 @@ class UserPreview(PixivModel):
 
 
 class UserSearchResult(SearchResult):
-    users: List[UserPreview] = Field(alias='user_previews')
+    users: List[UserPreview] = Field([], alias='user_previews')
 
     def __iter__(self) -> Iterator[UserPreview]:
         return iter(self.users)
@@ -89,7 +89,7 @@ class UserRelatedResult(PixivModel):
 
 
 class IllustSearchResult(SearchResult):
-    illusts: List[ArtWork]
+    illusts: List[ArtWork] = []
 
     def __iter__(self) -> Iterator[ArtWork]:
         return iter(self.illusts)
@@ -100,8 +100,8 @@ class IllustDetailResult(PixivModel):
 
 
 class IllustCommentResult(SearchResult):
-    total: int = Field(alias='total_comments')
-    comments: List[Comment]
+    total: int = Field(0, alias='total_comments')
+    comments: List[Comment] = []
     next_url: Optional[AnyHttpUrl]
     access_comment: Optional[bool] = Field(alias='comment_access_control')
 
