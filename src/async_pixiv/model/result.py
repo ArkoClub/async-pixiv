@@ -15,10 +15,18 @@ from pydantic import (
 )
 from typing_extensions import Self
 
-from async_pixiv.model._base import PixivModel
+from async_pixiv.model._base import (
+    PixivModel,
+    null_dict_validator,
+)
 from async_pixiv.model.artwork import (
     ArtWork,
     Comment,
+)
+from async_pixiv.model.novel import (
+    Novel,
+    NovelMaker,
+    NovelSeries,
 )
 from async_pixiv.model.user import (
     User,
@@ -77,6 +85,13 @@ class UserBookmarksIllustsResult(UserIllustsResult):
     pass
 
 
+class UserNovelsResult(PageResult):
+    novels: List[Novel] = []
+
+    def __iter__(self) -> Iterator[Novel]:
+        return iter(self.novels)
+
+
 class UserDetailResult(PixivModel):
     user: User
     profile: UserProfile
@@ -123,3 +138,37 @@ class RecommendedResult(PageResult):
 
     def __iter__(self) -> Iterator[ArtWork]:
         return iter(self.illusts)
+
+
+class NovelSearchResult(PageResult):
+    novels: List[Novel] = []
+
+    def __iter__(self) -> Iterator[Novel]:
+        return iter(self.novels)
+
+
+class NovelDetailResult(PixivModel):
+    novel: Novel
+
+
+class NovelContentResult(PixivModel):
+    marker: Optional[NovelMaker] = Field(alias='novel_marker')
+    content: str = Field(alias='novel_text')
+    previous: Optional[Novel] = Field(alias='series_prev')
+    next: Optional[Novel] = Field(alias='series_next')
+
+    _check = null_dict_validator('marker', 'previous', 'next')
+
+    @property
+    def text(self) -> str:
+        return self.content
+
+
+class NovelSeriesResult(PageResult):
+    series: NovelSeries = Field(alias='novel_series_detail')
+    first_novel: Novel = Field(alias='novel_series_first_novel')
+    latest_novel: Novel = Field(alias='novel_series_latest_novel')
+    novels: List[Novel] = []
+
+    def __iter__(self) -> Iterator[Novel]:
+        return iter(self.novels)

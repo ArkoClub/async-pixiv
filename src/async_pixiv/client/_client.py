@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from async_pixiv.client._section import (
         USER,
         ILLUST,
+        NOVEL,
     )
     from aiohttp import (
         ClientResponse,
@@ -100,6 +101,14 @@ class PixivClient(Net):
                 from async_pixiv.client._section import ILLUST
                 self._sections['illust'] = ILLUST(self)
         return self._sections['illust']
+
+    @property
+    def NOVEL(self) -> "NOVEL":
+        with self._lock:
+            if self._sections.get('novel', None) is None:
+                from async_pixiv.client._section import NOVEL
+                self._sections['novel'] = NOVEL(self)
+        return self._sections['novel']
 
     @property
     def is_logged(self) -> bool:

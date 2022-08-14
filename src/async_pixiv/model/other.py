@@ -4,6 +4,17 @@ from pydantic import HttpUrl
 
 from async_pixiv.model._base import PixivModel
 
+__all__ = [
+    'Series',
+    'ImageUrl',
+    'Tag', 'TagTranslation',
+]
+
+
+class Series(PixivModel):
+    id: int
+    title: str
+
 
 class ImageUrl(PixivModel):
     square_medium: Optional[HttpUrl]

@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         UserIllustsResult,
         UserBookmarksIllustsResult,
         UserRelatedResult,
+        UserNovelsResult,
     )
 
 
@@ -74,6 +75,19 @@ class User(PixivModel):
         return await client.USER.bookmarks(
             self.id, tag=tag, max_bookmark_id=max_bookmark_id,
             filter=SearchFilter.ios if for_ios else SearchFilter.android,
+        )
+
+    async def novels(
+            self, client: Optional["PixivClient"] = None, *,
+            for_ios: bool = True, offset: int = None
+    ) -> "UserNovelsResult":
+        from async_pixiv.client._section import SearchFilter
+        if client is None:
+            from async_pixiv.client import PixivClient
+            client = PixivClient.get_client()
+        return await client.USER.novels(
+            self.id, offset=offset,
+            filter=SearchFilter.ios if for_ios else SearchFilter.android
         )
 
     async def related(
