@@ -32,7 +32,7 @@ from async_pixiv.error import (
     LoginError,
     OauthError,
 )
-from async_pixiv.model.model import User
+from async_pixiv.model.user import User
 from async_pixiv.utils.model import Net
 from async_pixiv.utils.typed import RequestMethod
 
