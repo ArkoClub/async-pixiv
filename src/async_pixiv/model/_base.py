@@ -9,8 +9,6 @@ from pydantic import (
     validator,
 )
 
-# noinspection PyProtectedMember
-
 __all__ = [
     'PixivModel', 'PixivModelConfig',
     'null_dict_validator'
@@ -44,7 +42,6 @@ class PixivModel(PydanticBaseModel):
             return f"<{self.__class__.__name__}>"
 
 
-# noinspection PyUnusedLocal
 def null_dict_validator(*fields: str) -> classmethod:
     def v(cls, value: T) -> Optional[T]:
         if value == {}:

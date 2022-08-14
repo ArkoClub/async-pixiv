@@ -76,7 +76,6 @@ class UserSearchResult(PageResult):
 
 class UserIllustsResult(PageResult):
     illusts: List[ArtWork]
-    next_url: Optional[AnyHttpUrl]
 
     def __iter__(self) -> Iterator[ArtWork]:
         return iter(self.illusts)
@@ -107,11 +106,8 @@ class UserRelatedResult(PixivModel):
         return iter(self.users)
 
 
-class IllustSearchResult(PageResult):
-    illusts: List[ArtWork] = []
-
-    def __iter__(self) -> Iterator[ArtWork]:
-        return iter(self.illusts)
+class IllustSearchResult(UserIllustsResult):
+    pass
 
 
 class IllustDetailResult(PixivModel):
@@ -140,20 +136,13 @@ class UgoiraMetadataResult(PixivModel):
     metadata: UgoiraMetadata = Field(alias="ugoira_metadata")
 
 
-class RecommendedResult(PageResult):
-    illusts: List[ArtWork]
+class RecommendedResult(IllustSearchResult):
     ranking_illusts: List[ArtWork]
     contest_exists: bool
 
-    def __iter__(self) -> Iterator[ArtWork]:
-        return iter(self.illusts)
 
-
-class NovelSearchResult(PageResult):
-    novels: List[Novel] = []
-
-    def __iter__(self) -> Iterator[Novel]:
-        return iter(self.novels)
+class NovelSearchResult(UserNovelsResult):
+    pass
 
 
 class NovelDetailResult(PixivModel):
@@ -173,11 +162,7 @@ class NovelContentResult(PixivModel):
         return self.content
 
 
-class NovelSeriesResult(PageResult):
+class NovelSeriesResult(NovelSearchResult):
     series: NovelSeries = Field(alias='novel_series_detail')
     first_novel: Novel = Field(alias='novel_series_first_novel')
     latest_novel: Novel = Field(alias='novel_series_latest_novel')
-    novels: List[Novel] = []
-
-    def __iter__(self) -> Iterator[Novel]:
-        return iter(self.novels)

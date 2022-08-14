@@ -19,6 +19,10 @@ if TYPE_CHECKING:
         UserNovelsResult,
     )
 
+__all__ = [
+    'User', 'UserProfile', 'UserProfilePublicity', 'UserWorkSpace',
+]
+
 
 # noinspection PyProtectedMember
 class User(PixivModel):
@@ -117,7 +121,6 @@ class UserProfile(PixivModel):
     job: str
     job_id: int
     total_follow_users: int
-    # noinspection SpellCheckingInspection
     total_mypixiv_users: int
     total_illusts: int
     total_manga: int

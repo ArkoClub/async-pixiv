@@ -63,7 +63,7 @@ class ArtWorkType(Enum):
                 return False
 
 
-# noinspection PyProtectedMember
+# noinspection PyProtectedMember,PyShadowingBuiltins
 class ArtWork(PixivModel):
     class MetaPage(PixivModel):
         image_urls: "ImageUrl"
@@ -193,7 +193,6 @@ class ArtWork(PixivModel):
             client = PixivClient.get_client()
         return (await client.ILLUST.ugoira_metadata(self.id)).metadata
 
-    # noinspection PyShadowingBuiltins
     async def download_ugoira(
             self, client: Optional["PixivClient"] = None, *,
             type: Literal['zip', 'jpg', 'all', 'iter'] = 'zip'
