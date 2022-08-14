@@ -10,3 +10,15 @@ class ImageUrl(PixivModel):
     medium: Optional[HttpUrl]
     large: Optional[HttpUrl]
     original: Optional[HttpUrl]
+
+
+class TagTranslation(PixivModel):
+    zh: Optional[str]
+    en: Optional[str]
+    jp: Optional[str]
+
+
+class Tag(PixivModel):
+    name: str
+    translated_name: Optional[str]
+    added_by_uploaded_user: Optional[bool]

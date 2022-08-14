@@ -1,10 +1,22 @@
+from typing import (
+    Optional,
+    TypeVar,
+)
+
 from pydantic import (
     BaseConfig as PydanticBaseConfig,
     BaseModel as PydanticBaseModel,
+    validator,
 )
+
 # noinspection PyProtectedMember
 
-__all__ = ['PixivModel', 'PixivModelConfig']
+__all__ = [
+    'PixivModel', 'PixivModelConfig',
+    'null_dict_validator'
+]
+
+T = TypeVar('T')
 
 
 class PixivModelConfig(PydanticBaseConfig):
@@ -30,3 +42,14 @@ class PixivModel(PydanticBaseModel):
             return f"<{self.__class__.__name__} id=\"{self.id}\">"
         else:
             return f"<{self.__class__.__name__}>"
+
+
+# noinspection PyUnusedLocal
+def null_dict_validator(*fields: str) -> classmethod:
+    def v(cls, value: T) -> Optional[T]:
+        if value == {}:
+            return None
+        else:
+            return value
+
+    return validator(*fields, pre=True, always=True, allow_reuse=True)(v)

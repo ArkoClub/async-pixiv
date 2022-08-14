@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
 
 
-class SearchResult(ABC, PixivModel):
+class PageResult(ABC, PixivModel):
     next_url: Optional[AnyHttpUrl]
     search_span_limit: Optional[int]
 
@@ -49,7 +49,7 @@ class SearchResult(ABC, PixivModel):
             data = await (await client.get(str(self.next_url))).json()
             return self.__class__.parse_obj(data)
         else:
-            return None
+            return self.__class__()
 
 
 class UserPreview(PixivModel):
@@ -58,16 +58,19 @@ class UserPreview(PixivModel):
     is_muted: bool
 
 
-class UserSearchResult(SearchResult):
+class UserSearchResult(PageResult):
     users: List[UserPreview] = Field([], alias='user_previews')
 
     def __iter__(self) -> Iterator[UserPreview]:
         return iter(self.users)
 
 
-class UserIllustsResult(PixivModel):
+class UserIllustsResult(PageResult):
     illusts: List[ArtWork]
     next_url: Optional[AnyHttpUrl]
+
+    def __iter__(self) -> Iterator[ArtWork]:
+        return iter(self.illusts)
 
 
 class UserBookmarksIllustsResult(UserIllustsResult):
@@ -88,7 +91,7 @@ class UserRelatedResult(PixivModel):
         return iter(self.users)
 
 
-class IllustSearchResult(SearchResult):
+class IllustSearchResult(PageResult):
     illusts: List[ArtWork] = []
 
     def __iter__(self) -> Iterator[ArtWork]:
@@ -99,7 +102,7 @@ class IllustDetailResult(PixivModel):
     illust: ArtWork
 
 
-class IllustCommentResult(SearchResult):
+class IllustCommentResult(PageResult):
     total: int = Field(0, alias='total_comments')
     comments: List[Comment] = []
     next_url: Optional[AnyHttpUrl]
@@ -113,7 +116,7 @@ class IllustRelatedResult(IllustSearchResult):
     pass
 
 
-class RecommendedResult(SearchResult):
+class RecommendedResult(PageResult):
     illusts: List[ArtWork]
     ranking_illusts: List[ArtWork]
     contest_exists: bool

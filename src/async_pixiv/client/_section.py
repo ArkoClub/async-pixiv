@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from ._client import PixivClient
 
 __all__ = [
-    'SearchShort', 'SearchDuration', 'SearchFilter',
+    'SearchTarget', 'SearchShort', 'SearchDuration', 'SearchFilter',
     'SectionType',
     'USER', 'ILLUST'
 ]
@@ -45,6 +45,13 @@ class Enum(BaseEnum):
     def __str__(self) -> str:
         # noinspection PyTypeChecker
         return self.value
+
+
+class SearchTarget(Enum):
+    partial = 'partial_match_for_tags'  # 标签部分一致
+    full = 'exact_match_for_tags'  # 标签完全一致
+    text = 'text'  # 正文
+    keyword = 'keyword'  # 关键词
 
 
 class SearchShort(Enum):
@@ -85,6 +92,13 @@ class _Section(ABC):
                 Literal['date_desc', 'date_asc', 'popular_desc', 'popular_asc'],
                 SearchShort
             ] = SearchShort.date_desc,
+            target: Union[
+                SearchTarget,
+                Literal[
+                    'partial_match_for_tags', 'keyword',
+                    'exact_match_for_tags', 'text'
+                ]
+            ] = None,
             duration: Optional[Union[
                 Literal[
                     'within_last_day',
@@ -102,13 +116,14 @@ class _Section(ABC):
             V1_API / f'search/{self._type}',
             params={
                 'word': word, 'sort': sort, 'duration': duration,
-                'filter': filter, 'offset': offset, **kwargs
+                'filter': filter, 'offset': offset, 'search_target': target,
+                **kwargs
             }
         )
         return await request.json()
 
     async def detail(
-            self, id: Optional[int] = None, *, filter: Optional[Union[
+            self, id: int, *, filter: Optional[Union[
                 Literal['for_android', 'for_ios'], SearchFilter
             ]] = SearchFilter.ios
     ) -> Dict:
@@ -160,7 +175,7 @@ class USER(_Section):
         return UserSearchResult.parse_obj(data)
 
     async def detail(
-            self, id: Optional[int] = None, *, filter: Optional[Union[
+            self, id: int, *, filter: Optional[Union[
                 Literal['for_android', 'for_ios'], SearchFilter
             ]] = SearchFilter.ios
     ) -> UserDetailResult:
@@ -246,6 +261,13 @@ class ILLUST(_Section):
                 Literal['date_desc', 'date_asc', 'popular_desc', 'popular_asc'],
                 SearchShort
             ] = SearchShort.date_desc,
+            target: Union[
+                SearchTarget,
+                Literal[
+                    'partial_match_for_tags', 'keyword',
+                    'exact_match_for_tags', 'text'
+                ]
+            ] = SearchTarget.partial,
             duration: Optional[Union[
                 Literal[
                     'within_last_day',
@@ -271,13 +293,13 @@ class ILLUST(_Section):
         data = await super(ILLUST, self).search(
             word=word, sort=sort, duration=duration, filter=filter,
             offset=offset, bookmark_num_min=min_bookmarks,
-            bookmark_num_max=max_bookmarks,
+            bookmark_num_max=max_bookmarks, target=target,
             start_date=start_date, end_date=end_date,
         )
         return IllustSearchResult.parse_obj(data)
 
     async def detail(
-            self, id: Optional[int] = None, *,
+            self, id: int, *,
             filter: Optional[Union[
                 Literal['for_android', 'for_ios'], SearchFilter
             ]] = SearchFilter.ios

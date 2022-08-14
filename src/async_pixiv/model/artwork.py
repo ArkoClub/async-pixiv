@@ -12,12 +12,18 @@ from typing import (
 from pydantic import (
     AnyHttpUrl,
     Field,
-    validator,
 )
 from yarl import URL
 
-from async_pixiv.model._base import PixivModel
-from async_pixiv.model.other import ImageUrl
+from async_pixiv.model._base import (
+    PixivModel,
+    null_dict_validator,
+)
+from async_pixiv.model.other import (
+    ImageUrl,
+    Series,
+    Tag,
+)
 from async_pixiv.model.user import User
 
 if TYPE_CHECKING:
@@ -29,20 +35,9 @@ if TYPE_CHECKING:
     )
 
 __all__ = [
-    'Tag', 'TagTranslation',
     'ArtWork', 'ArtWorkType',
     'Comment',
 ]
-
-
-class TagTranslation(PixivModel):
-    zh: Optional[str]
-    en: Optional[str]
-
-
-class Tag(PixivModel):
-    name: str
-    translated_name: Optional[str]
 
 
 class ArtWorkType(Enum):
@@ -63,10 +58,6 @@ class ArtWorkType(Enum):
 
 # noinspection PyProtectedMember
 class ArtWork(PixivModel):
-    class Series(PixivModel):
-        id: int
-        title: str
-
     class MetaPage(PixivModel):
         image_urls: "ImageUrl"
 
@@ -193,9 +184,4 @@ class Comment(PixivModel):
     user: User
     parent: Optional["Comment"] = Field(alias='parent_comment')
 
-    @validator('parent', pre=True, always=True)
-    def parent_check(cls, value):
-        if value == {}:
-            return None
-        else:
-            return value
+    _check = null_dict_validator('parent')
