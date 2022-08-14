@@ -1,13 +1,18 @@
 from datetime import datetime
 from enum import Enum
+from io import BytesIO
 from pathlib import Path
 from typing import (
     Any,
+    Dict,
+    Iterator,
     List,
+    Literal,
     Optional,
     TYPE_CHECKING,
     Union,
 )
+from zipfile import ZipFile
 
 from pydantic import (
     AnyHttpUrl,
@@ -15,6 +20,7 @@ from pydantic import (
 )
 from yarl import URL
 
+from async_pixiv.error import ArtWorkTypeError
 from async_pixiv.model._base import (
     PixivModel,
     null_dict_validator,
@@ -37,6 +43,7 @@ if TYPE_CHECKING:
 __all__ = [
     'ArtWork', 'ArtWorkType',
     'Comment',
+    'UgoiraMetadata',
 ]
 
 
@@ -176,6 +183,53 @@ class ArtWork(PixivModel):
                 ), output=output))
             return result
 
+    async def ugoira_metadata(
+            self, client: Optional["PixivClient"] = None
+    ) -> Optional["UgoiraMetadata"]:
+        if self.type != ArtWorkType.ugoira:
+            return None
+        if client is None:
+            from async_pixiv.client import PixivClient
+            client = PixivClient.get_client()
+        return (await client.ILLUST.ugoira_metadata(self.id)).metadata
+
+    # noinspection PyShadowingBuiltins
+    async def download_ugoira(
+            self, client: Optional["PixivClient"] = None, *,
+            type: Literal['zip', 'jpg', 'all', 'iter'] = 'zip'
+    ) -> Optional[Union[
+        ZipFile, List[bytes], Dict[str, Union[ZipFile, List[bytes]]],
+        Iterator[bytes]
+    ]]:
+        if self.type != ArtWorkType.ugoira:
+            raise ArtWorkTypeError(
+                'If you want to download a moving image, '
+                'please use this method: \"download\"'
+            )
+        if client is None:
+            from async_pixiv.client import PixivClient
+            client = PixivClient.get_client()
+        metadata = await self.ugoira_metadata(client)
+        zip_url = metadata.zip_url
+        data = await client.download(
+            zip_url.original or zip_url.large or zip_url.medium,
+        )
+        if data is None:
+            return None
+        zip_file = ZipFile(BytesIO(data))
+        if type == 'zip':
+            return zip_file
+        frames = []
+        for frame_info in metadata.frames:
+            with zip_file.open(frame_info.file) as f:
+                frames.append(f.read())
+        if type == 'jpg':
+            return frames
+        elif type == 'iter':
+            return iter(frames)
+        else:
+            return {'zip': zip_file, 'frames': frames}
+
 
 class Comment(PixivModel):
     id: int
@@ -185,3 +239,12 @@ class Comment(PixivModel):
     parent: Optional["Comment"] = Field(alias='parent_comment')
 
     _check = null_dict_validator('parent')
+
+
+class UgoiraMetadata(PixivModel):
+    class Frame(PixivModel):
+        file: str
+        delay: int
+
+    zip_url: ImageUrl = Field(alias='zip_urls')
+    frames: List[Frame]

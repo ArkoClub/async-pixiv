@@ -8,3 +8,7 @@ class LoginError(PixivError):
 
 class OauthError(PixivError):
     pass
+
+
+class ArtWorkTypeError(PixivError, TypeError):
+    pass

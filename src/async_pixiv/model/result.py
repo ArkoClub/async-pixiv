@@ -22,6 +22,7 @@ from async_pixiv.model._base import (
 from async_pixiv.model.artwork import (
     ArtWork,
     Comment,
+    UgoiraMetadata,
 )
 from async_pixiv.model.novel import (
     Novel,
@@ -129,6 +130,14 @@ class IllustCommentResult(PageResult):
 
 class IllustRelatedResult(IllustSearchResult):
     pass
+
+
+class IllustNewResult(IllustDetailResult):
+    pass
+
+
+class UgoiraMetadataResult(PixivModel):
+    metadata: UgoiraMetadata = Field(alias="ugoira_metadata")
 
 
 class RecommendedResult(PageResult):

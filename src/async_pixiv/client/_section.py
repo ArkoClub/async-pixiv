@@ -1,15 +1,18 @@
 from abc import ABC
 from datetime import date
 from enum import Enum as BaseEnum
+from io import BytesIO
 from pathlib import Path
 from typing import (
     Dict,
+    Iterator,
     List,
     Optional,
     TYPE_CHECKING,
     TypeVar,
     Union,
 )
+from zipfile import ZipFile
 
 from typing_extensions import Literal
 from yarl import URL
@@ -17,6 +20,7 @@ from yarl import URL
 from async_pixiv.model.result import (
     IllustCommentResult,
     IllustDetailResult,
+    IllustNewResult,
     IllustRelatedResult,
     IllustSearchResult,
     NovelContentResult,
@@ -24,6 +28,7 @@ from async_pixiv.model.result import (
     NovelSearchResult,
     NovelSeriesResult,
     RecommendedResult,
+    UgoiraMetadataResult,
     UserBookmarksIllustsResult,
     UserDetailResult,
     UserIllustsResult,
@@ -31,6 +36,8 @@ from async_pixiv.model.result import (
     UserRelatedResult,
     UserSearchResult,
 )
+from ..error import ArtWorkTypeError
+from ..model.artwork import ArtWorkType
 
 if TYPE_CHECKING:
     from ._client import PixivClient
@@ -391,15 +398,40 @@ class ILLUST(_Section):
         )).json()
         return RecommendedResult.parse_obj(data)
 
+    async def new_illusts(
+            self, type: Literal['illust', 'manga'] = 'illust', *,
+            filter: Optional[Union[
+                Literal['for_android', 'for_ios'], SearchFilter
+            ]] = SearchFilter.ios,
+            max_illust_id: Optional[int] = None
+    ) -> IllustNewResult:
+        data = await (await self._client.get(
+            V1_API / 'illust/new',
+            params={'content_type': type, 'max_illust_id': max_illust_id}
+        )).json()
+        breakpoint()
+        return IllustNewResult.parse_obj(data)
+
+    async def ugoira_metadata(self, id: int) -> UgoiraMetadataResult:
+        data = await (await self._client.get(
+            V1_API / 'ugoira/metadata', params={'illust_id': id}
+        )).json()
+        return UgoiraMetadataResult.parse_obj(data)
+
     async def download(
             self, id: int, *,
             full: bool = False,
             filter: Optional[Union[
                 Literal['for_android', 'for_ios'], SearchFilter
             ]] = SearchFilter.ios,
-            output: Optional[Union[str, Path]] = None
+            output: Optional[Union[str, Path, BytesIO]] = None
     ) -> List[bytes]:
         artwork = (await self.detail(id, filter=filter)).illust
+        if artwork.type == ArtWorkType.ugoira:
+            raise ArtWorkTypeError(
+                'If you want to download a moving image, '
+                'please use this method: \"download_ugoira\"'
+            )
         if not full or not artwork.meta_pages:
             return [await self._client.download(str(
                 artwork.meta_single_page.original or
@@ -416,6 +448,34 @@ class ILLUST(_Section):
                     ), output=output)
                 )
             return result
+
+    async def download_ugoira(
+            self, id: int, *,
+            type: Literal['zip', 'jpg', 'all', 'iter'] = 'zip',
+    ) -> Optional[Union[
+        ZipFile, List[bytes], Dict[str, Union[ZipFile, List[bytes]]],
+        Iterator[bytes]
+    ]]:
+        metadata = (await self.ugoira_metadata(id)).metadata
+        zip_url = metadata.zip_url
+        data = await self._client.download(
+            zip_url.original or zip_url.large or zip_url.medium,
+        )
+        if data is None:
+            return None
+        zip_file = ZipFile(BytesIO(data))
+        if type == 'zip':
+            return zip_file
+        frames = []
+        for frame_info in metadata.frames:
+            with zip_file.open(frame_info.file) as f:
+                frames.append(f.read())
+        if type == 'jpg':
+            return frames
+        elif type == 'iter':
+            return iter(frames)
+        else:
+            return {'zip': zip_file, 'frames': frames}
 
 
 # noinspection PyShadowingBuiltins
@@ -480,7 +540,6 @@ class NOVEL(_Section):
             V1_API / 'novel/text', params={'novel_id': id}
         )).json()
         return NovelContentResult.parse_obj(data)
-
 
     async def series(
             self, id: int, *, filter: Optional[Union[
