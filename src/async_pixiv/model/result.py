@@ -93,7 +93,7 @@ class PageResult(ABC, PixivModel, Generic[T]):
         while next_results is not None:
             for result in next_results:
                 yield result
-            next_results = await self.next(client)
+            next_results = await next_results.next(client)
 
 
 class UserPreview(PixivModel):

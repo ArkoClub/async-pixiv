@@ -26,6 +26,7 @@ from yarl import URL
 
 from async_pixiv.utils.func import proxies_from_env
 from async_pixiv.utils.typed import RequestMethod
+from logging import getLogger
 
 try:
     import regex as re
@@ -39,18 +40,17 @@ except ImportError:
 
 try:
     from uvloop import EventLoopPolicy
+
+    asyncio.set_event_loop_policy(EventLoopPolicy())
 except ImportError:
-    if sys.platform.startswith('win'):
-        from asyncio import WindowsProactorEventLoopPolicy as EventLoopPolicy
-    else:
-        from asyncio import DefaultEventLoopPolicy as EventLoopPolicy
+    EventLoopPolicy = None
 
 if TYPE_CHECKING:
     from aiohttp import ClientResponse
 
 __all__ = ['Net']
 
-asyncio.set_event_loop_policy(EventLoopPolicy())
+logger = getLogger(__name__)
 
 
 class Config(NamedTuple):
@@ -186,6 +186,7 @@ class Net(object):
             except Exception as e:
                 if time != self._retry:
                     await asyncio.sleep(self._retry_sleep)
+                    logger.debug(f"Encountered an error: \n{e}")
                     continue
                 raise e
 
