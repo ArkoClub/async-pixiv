@@ -7,6 +7,9 @@ from typing import (
     List,
     Optional,
     TYPE_CHECKING,
+    AsyncIterator,
+    Generic,
+    TypeVar,
 )
 
 from pydantic import (
@@ -39,13 +42,31 @@ from async_pixiv.model.user import (
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
 
+__all__ = [
+    'UserPreview', 'UserSearchResult', 'UserIllustsResult',
+    'UserBookmarksIllustsResult', 'UserNovelsResult', 'UserDetailResult',
+    'UserRelatedResult',
 
-class PageResult(ABC, PixivModel):
+    'IllustSearchResult', 'IllustDetailResult', 'IllustCommentResult',
+    'IllustRelatedResult', 'IllustNewResult',
+
+    'UgoiraMetadataResult',
+
+    'RecommendedResult',
+
+    'NovelSearchResult', 'NovelContentResult', 'NovelSeriesResult',
+    'NovelDetailResult',
+]
+
+T = TypeVar('T')
+
+
+class PageResult(ABC, PixivModel, Generic[T]):
     next_url: Optional[AnyHttpUrl]
     search_span_limit: Optional[int]
 
     @abstractmethod
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[T]:
         pass
 
     async def next(
@@ -58,7 +79,21 @@ class PageResult(ABC, PixivModel):
             data = await (await client.get(str(self.next_url))).json()
             return self.__class__.parse_obj(data)
         else:
-            return self.__class__()
+            return None
+
+    async def iter_all_pages(
+            self, client: Optional["PixivClient"] = None
+    ) -> AsyncIterator[T]:
+        for result in self:
+            yield result
+        if client is None:
+            from async_pixiv.client import PixivClient
+            client = PixivClient.get_client()
+        next_results = await self.next(client)
+        while next_results is not None:
+            for result in next_results:
+                yield result
+            next_results = await self.next(client)
 
 
 class UserPreview(PixivModel):
@@ -67,14 +102,14 @@ class UserPreview(PixivModel):
     is_muted: bool
 
 
-class UserSearchResult(PageResult):
+class UserSearchResult(PageResult[UserPreview]):
     users: List[UserPreview] = Field([], alias='user_previews')
 
     def __iter__(self) -> Iterator[UserPreview]:
         return iter(self.users)
 
 
-class UserIllustsResult(PageResult):
+class UserIllustsResult(PageResult[ArtWork]):
     illusts: List[ArtWork]
 
     def __iter__(self) -> Iterator[ArtWork]:
@@ -85,7 +120,7 @@ class UserBookmarksIllustsResult(UserIllustsResult):
     pass
 
 
-class UserNovelsResult(PageResult):
+class UserNovelsResult(PageResult[Novel]):
     novels: List[Novel] = []
 
     def __iter__(self) -> Iterator[Novel]:
@@ -114,7 +149,7 @@ class IllustDetailResult(PixivModel):
     illust: ArtWork
 
 
-class IllustCommentResult(PageResult):
+class IllustCommentResult(PageResult[Comment]):
     total: int = Field(0, alias='total_comments')
     comments: List[Comment] = []
     next_url: Optional[AnyHttpUrl]

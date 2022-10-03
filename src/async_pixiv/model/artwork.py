@@ -7,7 +7,6 @@ from typing import (
     Dict,
     Iterator,
     List,
-    Literal,
     Optional,
     TYPE_CHECKING,
     Union,
@@ -18,6 +17,7 @@ from pydantic import (
     AnyHttpUrl,
     Field,
 )
+from typing_extensions import Literal
 from yarl import URL
 
 from async_pixiv.error import ArtWorkTypeError

@@ -129,12 +129,16 @@ class PixivClient(Net):
             timeout: float = 10,
             proxy: Optional[StrOrURL] = None,
             trust_env: bool = False,
+            retry: int = 5,
+            retry_sleep: float = 1
     ):
         super().__init__(
             limit=limit,
             timeout=timeout,
             proxy=proxy,
-            trust_env=trust_env
+            trust_env=trust_env,
+            retry=retry,
+            retry_sleep=retry_sleep
         )
         config_path = (Path(__file__) / "../config").resolve()
         with open(config_path, encoding='utf-8') as file:
@@ -197,14 +201,18 @@ class PixivClient(Net):
                 urlparse,
                 urlencode,
             )
+            proxy = None
             for p in self._proxies:
                 if p.scheme not in ["https", 'wss']:
                     proxy = str(p)
                     break
-            # noinspection PyTypeChecker
-            browser = await playwright.chromium.launch(
-                proxy={"server": proxy}
-            )
+            if proxy is not None:
+                # noinspection PyTypeChecker
+                browser = await playwright.chromium.launch(
+                    proxy={"server": proxy}
+                )
+            else:
+                browser = await playwright.chromium.launch()
             context = await browser.new_context()
             api_request_context = context.request
             page = await context.new_page()

@@ -62,6 +62,7 @@ class Config(NamedTuple):
 class Net(object):
     __slots__ = (
         '_conn_kwargs', '_timeout', '_session', '_proxies', '_trust_env',
+        '_retry', '_retry_sleep'
     )
 
     _limit: int
@@ -100,7 +101,8 @@ class Net(object):
 
     def __init__(
             self, *, limit: int = 30, timeout: float = 10,
-            proxy: Optional[StrOrURL] = None, trust_env: bool = False
+            proxy: Optional[StrOrURL] = None, trust_env: bool = False,
+            retry: int = 5, retry_sleep: float = 1
     ) -> None:
         self._session = None
         self._conn_kwargs = {'limit': limit}
@@ -110,6 +112,8 @@ class Net(object):
         if trust_env:
             self._proxies.extend(proxies_from_env())
         self._proxies = list(set(self._proxies))
+        self._retry = retry
+        self._retry_sleep = retry_sleep
 
     async def __aenter__(self) -> Self:
         await self._init_session()
@@ -173,10 +177,17 @@ class Net(object):
                     param.update({f"{key}[]": ','.join(map(str, value))})
             if isinstance(value, bool):
                 param.update({key: str(value).lower()})
-        return await (await self._init_session()).request(
-            method, url, params=param, headers=headers, data=data,
-            proxy=proxy
-        )
+        for time in range(self._retry):
+            try:
+                return await (await self._init_session()).request(
+                    method, url, params=param, headers=headers, data=data,
+                    proxy=proxy
+                )
+            except Exception as e:
+                if time != self._retry:
+                    await asyncio.sleep(self._retry_sleep)
+                    continue
+                raise e
 
     async def get(
             self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
