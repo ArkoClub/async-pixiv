@@ -113,11 +113,18 @@ class ArtWork(PixivModel):
 
     @property
     def all_image_urls(self) -> List[URL]:
+        if not self.meta_pages:
+            # noinspection PyTypeChecker
+            return [self.meta_single_page.original]
         result = []
         for page in self.meta_pages:
-            result.append(URL(str(
-                page.image_urls.original or page.image_urls.large
-            )))
+            result.append(
+                URL(
+                    str(
+                        page.image_urls.original or page.image_urls.large
+                    )
+                )
+            )
         return result
 
     async def detail(
@@ -169,18 +176,24 @@ class ArtWork(PixivModel):
             from async_pixiv.client import PixivClient
             client = PixivClient.get_client()
         if not full or not self.meta_pages:
-            return [await client.download(str(
-                self.meta_single_page.original or
-                self.image_urls.original or
-                self.image_urls.large
-            ))]
+            return [await client.download(
+                str(
+                    self.meta_single_page.original or
+                    self.image_urls.original or
+                    self.image_urls.large
+                )
+            )]
         else:
             result: List[bytes] = []
             for meta_page in self.meta_pages:
-                result.append(await client.download(str(
-                    meta_page.image_urls.original or
-                    meta_page.image_urls.large
-                ), output=output))
+                result.append(
+                    await client.download(
+                        str(
+                            meta_page.image_urls.original or
+                            meta_page.image_urls.large
+                        ), output=output
+                    )
+                )
             return result
 
     async def ugoira_metadata(

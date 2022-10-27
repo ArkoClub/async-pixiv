@@ -77,7 +77,6 @@ class SearchDuration(Enum):
     day = 'within_last_day'
     week = 'within_last_week'
     month = 'within_last_month'
-    year = 'within_last_year'
 
 
 class SearchFilter(Enum):
@@ -299,7 +298,6 @@ class ILLUST(_Section):
                     'within_last_day',
                     'within_last_week',
                     'within_last_month',
-                    'within_last_year'
                 ], SearchDuration
             ]] = None,
             filter: Optional[Union[
@@ -407,9 +405,12 @@ class ILLUST(_Section):
     ) -> IllustNewResult:
         data = await (await self._client.get(
             V1_API / 'illust/new',
-            params={'content_type': type, 'max_illust_id': max_illust_id}
+            params={
+                'content_type': type,
+                'max_illust_id': max_illust_id,
+                'filter': filter,
+            }
         )).json()
-        breakpoint()
         return IllustNewResult.parse_obj(data)
 
     async def ugoira_metadata(self, id: int) -> UgoiraMetadataResult:
@@ -433,19 +434,23 @@ class ILLUST(_Section):
                 'please use this method: \"download_ugoira\"'
             )
         if not full or not artwork.meta_pages:
-            return [await self._client.download(str(
-                artwork.meta_single_page.original or
-                artwork.image_urls.original or
-                artwork.image_urls.large
-            ), output=output)]
+            return [await self._client.download(
+                str(
+                    artwork.meta_single_page.original or
+                    artwork.image_urls.original or
+                    artwork.image_urls.large
+                ), output=output
+            )]
         else:
             result: List[bytes] = []
             for meta_page in artwork.meta_pages:
                 result.append(
-                    await self._client.download(str(
-                        meta_page.image_urls.original or
-                        meta_page.image_urls.large
-                    ), output=output)
+                    await self._client.download(
+                        str(
+                            meta_page.image_urls.original or
+                            meta_page.image_urls.large
+                        ), output=output
+                    )
                 )
             return result
 

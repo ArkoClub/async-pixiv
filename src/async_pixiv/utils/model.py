@@ -1,7 +1,7 @@
 import asyncio
-import sys
 from asyncio import Lock
 from enum import Enum
+from logging import getLogger
 from typing import (
     Any,
     List,
@@ -26,7 +26,6 @@ from yarl import URL
 
 from async_pixiv.utils.func import proxies_from_env
 from async_pixiv.utils.typed import RequestMethod
-from logging import getLogger
 
 try:
     import regex as re
@@ -184,7 +183,7 @@ class Net(object):
                     proxy=proxy
                 )
             except Exception as e:
-                if time != self._retry:
+                if time != self._retry - 1:
                     await asyncio.sleep(self._retry_sleep)
                     logger.debug(f"Encountered an error: \n{e}")
                     continue
