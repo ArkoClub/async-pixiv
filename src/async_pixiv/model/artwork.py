@@ -13,13 +13,7 @@ from typing import (
 )
 from zipfile import ZipFile
 
-from pydantic import (
-    AnyHttpUrl,
-    Field,
-)
-from typing_extensions import Literal
-from yarl import URL
-
+from arkowrapper import ArkoWrapper
 from async_pixiv.error import ArtWorkTypeError
 from async_pixiv.model._base import (
     PixivModel,
@@ -31,6 +25,17 @@ from async_pixiv.model.other import (
     Tag,
 )
 from async_pixiv.model.user import User
+from pydantic import (
+    AnyHttpUrl,
+    Field,
+)
+from typing_extensions import Literal
+from yarl import URL
+
+try:
+    import imageio
+except ImportError:
+    imageio = None
 
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
@@ -45,6 +50,12 @@ __all__ = [
     'Comment',
     'UgoiraMetadata',
 ]
+
+UGOIRA_RESULT_TYPE = (
+    Literal['zip', 'jpg', 'all', 'iter', 'gif']
+    if imageio else
+    Literal['zip', 'jpg', 'all', 'iter']
+)
 
 
 class ArtWorkType(Enum):
@@ -103,9 +114,14 @@ class ArtWork(PixivModel):
 
     @property
     def is_r18(self) -> bool:
-        if len(self.tags) >= 1:
-            return self.tags[0].name.title().replace('-', '') == 'R18'
-        return False
+        return (
+            ArkoWrapper(self.tags)
+            .map(lambda x: x.name)
+            .append(self.title)
+            .map(lambda x: x.upper().replace('-', ''))
+            .map(lambda x: 'R18' in x)
+            .any()
+        )
 
     @property
     def link(self) -> URL:
@@ -208,11 +224,8 @@ class ArtWork(PixivModel):
 
     async def download_ugoira(
             self, client: Optional["PixivClient"] = None, *,
-            type: Literal['zip', 'jpg', 'all', 'iter'] = 'zip'
-    ) -> Optional[Union[
-        ZipFile, List[bytes], Dict[str, Union[ZipFile, List[bytes]]],
-        Iterator[bytes]
-    ]]:
+            type: UGOIRA_RESULT_TYPE = 'zip'
+    ) -> Optional[Union[List[bytes], Dict[str, bytes], Iterator[bytes]]]:
         if self.type != ArtWorkType.ugoira:
             raise ArtWorkTypeError(
                 'If you want to download a moving image, '
@@ -228,9 +241,10 @@ class ArtWork(PixivModel):
         )
         if data is None:
             return None
-        zip_file = ZipFile(BytesIO(data))
         if type == 'zip':
-            return zip_file
+            return data
+        bytes_io = BytesIO(data)
+        zip_file = ZipFile(bytes_io)
         frames = []
         for frame_info in metadata.frames:
             with zip_file.open(frame_info.file) as f:
@@ -239,8 +253,26 @@ class ArtWork(PixivModel):
             return frames
         elif type == 'iter':
             return iter(frames)
+        elif imageio and type == 'gif':
+            frames = zip(
+                frames,
+                map(lambda x: '.' + x.file.split('.')[-1], metadata.frames)
+            )
+            return imageio.v3.imwrite(
+                "<bytes>",
+                list(
+                    map(
+                        lambda x: imageio.v3.imread(x[0], extension=x[1]),
+                        frames
+                    )
+                ),
+                plugin="pillow",
+                extension='.gif',
+                duration=list(map(lambda x: x.delay / 1000, metadata.frames)),
+                loop=0,
+            )
         else:
-            return {'zip': zip_file, 'frames': frames}
+            return {'zip': data, 'frames': frames}
 
 
 class Comment(PixivModel):

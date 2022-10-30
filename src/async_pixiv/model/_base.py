@@ -40,6 +40,11 @@ class PixivModel(PydanticBaseModel):
             return f"<{self.__class__.__name__} id=\"{self.id}\">"
         else:
             return f"<{self.__class__.__name__}>"
+    
+    def __hash__(self) -> int:
+        if hasattr(self, 'id'):
+            return hash((self.__class__.__name__, self.id))
+        return super(PixivModel, self).__hash__()
 
 
 def null_dict_validator(*fields: str) -> classmethod:
