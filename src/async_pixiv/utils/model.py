@@ -21,7 +21,10 @@ from aiohttp.typedefs import (
     StrOrURL,
 )
 from aiohttp_socks import ProxyConnector
-from typing_extensions import Self
+from requests import Session
+from typing_extensions import (
+    Self,
+)
 from yarl import URL
 
 from async_pixiv.utils.func import proxies_from_env
@@ -61,7 +64,7 @@ class Config(NamedTuple):
 class Net(object):
     __slots__ = (
         '_conn_kwargs', '_timeout', '_session', '_proxies', '_trust_env',
-        '_retry', '_retry_sleep'
+        '_retry', '_retry_sleep', '_sync_session'
     )
 
     _limit: int
@@ -113,6 +116,7 @@ class Net(object):
         self._proxies = list(set(self._proxies))
         self._retry = retry
         self._retry_sleep = retry_sleep
+        self._sync_session = Session()
 
     async def __aenter__(self) -> Self:
         await self._init_session()
@@ -164,9 +168,11 @@ class Net(object):
                 if key in ["sizes", "types"]:
                     param.update({key: ','.join(map(str, value))})
                 elif key in ["ids"]:
-                    param.update({
-                        f"{key}[]": ",".join([str(pid) for pid in value])
-                    })
+                    param.update(
+                        {
+                            f"{key}[]": ",".join([str(pid) for pid in value])
+                        }
+                    )
                 elif key in ["viewed"]:
                     [
                         param.update({f"{key}[{k}]": value[k]})
@@ -236,3 +242,13 @@ class Net(object):
         return await self._request(
             "DELETE", url, params=params, headers=headers, data=data
         )
+
+    def sync_request(self, *args, **kwargs):
+        proxy = None
+        for p in self._proxies:
+            if p.scheme in ['http', 'ws']:
+                proxy = p
+                break
+        if proxy is not None:
+            self._sync_session.proxies.update({proxy.scheme: str(proxy)})
+        return self._sync_session.request(*args, **kwargs)

@@ -13,7 +13,15 @@ from typing import (
 )
 from zipfile import ZipFile
 
-from arkowrapper import ArkoWrapper
+from pydantic import (
+    AnyHttpUrl,
+    Field,
+    PrivateAttr,
+)
+from requests import Session
+from typing_extensions import Literal
+from yarl import URL
+
 from async_pixiv.error import ArtWorkTypeError
 from async_pixiv.model._base import (
     PixivModel,
@@ -25,17 +33,16 @@ from async_pixiv.model.other import (
     Tag,
 )
 from async_pixiv.model.user import User
-from pydantic import (
-    AnyHttpUrl,
-    Field,
-)
-from typing_extensions import Literal
-from yarl import URL
 
 try:
     import imageio
 except ImportError:
     imageio = None
+
+try:
+    import regex as re
+except ImportError:
+    import re
 
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
@@ -56,6 +63,8 @@ UGOIRA_RESULT_TYPE = (
     if imageio else
     Literal['zip', 'jpg', 'all', 'iter']
 )
+
+session = Session()
 
 
 class ArtWorkType(Enum):
@@ -108,20 +117,26 @@ class ArtWork(PixivModel):
     total_comments: Optional[int]
     comment_access_control: Optional[int]
 
+    _is_r18: Optional[bool] = PrivateAttr(None)
+
     @property
     def is_nsfw(self) -> bool:
         return self.sanity_level > 5
 
     @property
     def is_r18(self) -> bool:
-        return (
-            ArkoWrapper(self.tags)
-            .map(lambda x: x.name)
-            .append(self.title)
-            .map(lambda x: x.upper().replace('-', ''))
-            .map(lambda x: 'R18' in x)
-            .any()
-        )
+        if self._is_r18 is None:
+            from async_pixiv.client import PixivClient
+
+            client = PixivClient.get_client()
+            response = client.sync_request('GET', str(self.link))
+            html = response.text
+            title = re.findall(
+                r"<meta property=\"twitter:title\" content=\"(.*?)\">",
+                html
+            )[0]
+            self._is_r18 = bool(re.findall(r"\[R-18]", title))
+        return self._is_r18
 
     @property
     def link(self) -> URL:
