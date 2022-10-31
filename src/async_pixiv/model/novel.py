@@ -16,6 +16,7 @@ from async_pixiv.model._base import (
     null_dict_validator,
 )
 from async_pixiv.model.other import (
+    AIType,
     ImageUrl,
     Series,
     Tag,
@@ -55,6 +56,7 @@ class Novel(PixivModel):
     is_mypixiv_only: bool
     is_x_restricted: bool
     comment_access_control: Optional[int]
+    ai_type: AIType = Field(alias='novel_ai_type')
 
     _check = null_dict_validator('series')
 

@@ -87,11 +87,14 @@ class SearchFilter(Enum):
 # noinspection PyShadowingBuiltins
 class _Section(ABC):
     _client: "PixivClient"
-    _type: str = ''
+    _type: str
 
     @property
     def type(self) -> str:
         return self._type
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        cls._type = cls.__name__.lower()
 
     def __init__(self, client: "PixivClient") -> None:
         self._client = client
@@ -157,8 +160,6 @@ class IllustType(Enum):
 
 # noinspection PyShadowingBuiltins
 class USER(_Section):
-    _type = 'user'
-
     async def search(
             self,
             word: str, *,
@@ -268,8 +269,6 @@ class USER(_Section):
 
 # noinspection PyShadowingBuiltins
 class ILLUST(_Section):
-    _type = 'illust'
-
     async def follow(
             self, *, offset: Optional[int] = None
     ) -> IllustSearchResult:
@@ -485,8 +484,6 @@ class ILLUST(_Section):
 
 # noinspection PyShadowingBuiltins
 class NOVEL(_Section):
-    _type = "novel"
-
     async def search(
             self,
             word: str, *,

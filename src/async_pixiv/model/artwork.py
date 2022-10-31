@@ -28,6 +28,7 @@ from async_pixiv.model._base import (
     null_dict_validator,
 )
 from async_pixiv.model.other import (
+    AIType,
     ImageUrl,
     Series,
     Tag,
@@ -116,6 +117,7 @@ class ArtWork(PixivModel):
     is_muted: bool
     total_comments: Optional[int]
     comment_access_control: Optional[int]
+    ai_type: AIType = Field(alias='illust_ai_type')
 
     _is_r18: Optional[bool] = PrivateAttr(None)
 
