@@ -120,6 +120,7 @@ class ArtWork(PixivModel):
     ai_type: AIType = Field(alias='illust_ai_type')
 
     _is_r18: Optional[bool] = PrivateAttr(None)
+    _is_r18g: Optional[bool] = PrivateAttr(None)
 
     @property
     def is_nsfw(self) -> bool:
@@ -133,12 +134,25 @@ class ArtWork(PixivModel):
             client = PixivClient.get_client()
             response = client.sync_request('GET', str(self.link))
             html = response.text
-            title = re.findall(
-                r"<meta property=\"twitter:title\" content=\"(.*?)\">",
-                html
+            title: str = re.findall(
+                r"<meta property=\"twitter:title\" content=\"(.*?)\">", html
             )[0]
-            self._is_r18 = bool(re.findall(r"\[R-18]", title))
+            self._is_r18 = title.startswith('[R-18')
         return self._is_r18
+
+    @property
+    def is_r18g(self) -> bool:
+        if self._is_r18g is None:
+            from async_pixiv.client import PixivClient
+
+            client = PixivClient.get_client()
+            response = client.sync_request('GET', str(self.link))
+            html = response.text
+            title = re.findall(
+                r"<meta property=\"twitter:title\" content=\"(.*?)\">", html
+            )[0]
+            self._is_r18g = title.startswith('[R-18G]')
+        return self._is_r18g
 
     @property
     def link(self) -> URL:
