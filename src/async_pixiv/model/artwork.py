@@ -18,7 +18,7 @@ from pydantic import (
     Field,
     PrivateAttr,
 )
-from requests import Session
+from requests import HTTPError, Session
 from typing_extensions import Literal
 from yarl import URL
 
@@ -129,29 +129,54 @@ class ArtWork(PixivModel):
     @property
     def is_r18(self) -> bool:
         if self._is_r18 is None:
-            from async_pixiv.client import PixivClient
+            try:
+                from async_pixiv.client import PixivClient
+                client = PixivClient.get_client()
+                response = client.sync_request('GET', str(self.link))
+                response.raise_for_status()
+                html = response.text
+                title: str = re.findall(
+                    r"<meta property=\"twitter:title\" content=\"(.*?)\">", html
+                )[0]
+                self._is_r18 = title.startswith('[R-18')
+            except HTTPError:
+                self._is_r18 = any(
+                    map(
+                        lambda x: (
+                                'R-18' in x.name.upper()
+                                or
+                                'R18' in x.name.upper()
+                        ),
+                        self.tags
+                    )
+                )
 
-            client = PixivClient.get_client()
-            response = client.sync_request('GET', str(self.link))
-            html = response.text
-            title: str = re.findall(
-                r"<meta property=\"twitter:title\" content=\"(.*?)\">", html
-            )[0]
-            self._is_r18 = title.startswith('[R-18')
         return self._is_r18
 
     @property
     def is_r18g(self) -> bool:
         if self._is_r18g is None:
-            from async_pixiv.client import PixivClient
-
-            client = PixivClient.get_client()
-            response = client.sync_request('GET', str(self.link))
-            html = response.text
-            title = re.findall(
-                r"<meta property=\"twitter:title\" content=\"(.*?)\">", html
-            )[0]
-            self._is_r18g = title.startswith('[R-18G]')
+            try:
+                from async_pixiv.client import PixivClient
+                client = PixivClient.get_client()
+                response = client.sync_request('GET', str(self.link))
+                response.raise_for_status()
+                html = response.text
+                title = re.findall(
+                    r"<meta property=\"twitter:title\" content=\"(.*?)\">", html
+                )[0]
+                self._is_r18g = title.startswith('[R-18G]')
+            except HTTPError:
+                self._is_r18g = any(
+                    map(
+                        lambda x: (
+                                'R-18G' in x.name.upper()
+                                or
+                                'R18G' in x.name.upper()
+                        ),
+                        self.tags
+                    )
+                )
         return self._is_r18g
 
     @property
@@ -175,8 +200,8 @@ class ArtWork(PixivModel):
         return result
 
     async def detail(
-            self, client: Optional["PixivClient"] = None, *,
-            for_ios: bool = True
+        self, client: Optional["PixivClient"] = None, *,
+        for_ios: bool = True
     ) -> "IllustDetailResult":
         from async_pixiv.client._section import SearchFilter
 
@@ -190,8 +215,8 @@ class ArtWork(PixivModel):
         )
 
     async def comments(
-            self, client: Optional["PixivClient"] = None, *,
-            offset: Optional[int] = None
+        self, client: Optional["PixivClient"] = None, *,
+        offset: Optional[int] = None
     ) -> "IllustCommentResult":
         if client is None:
             from async_pixiv.client import PixivClient
@@ -199,10 +224,10 @@ class ArtWork(PixivModel):
         return await client.ILLUST.comments(self.id, offset=offset)
 
     async def related(
-            self, client: Optional["PixivClient"] = None, *,
-            for_ios: bool = True,
-            offset: Optional[int] = None,
-            seed_id: Optional[int] = None
+        self, client: Optional["PixivClient"] = None, *,
+        for_ios: bool = True,
+        offset: Optional[int] = None,
+        seed_id: Optional[int] = None
     ) -> "IllustRelatedResult":
         from async_pixiv.client._section import SearchFilter
         if client is None:
@@ -214,10 +239,10 @@ class ArtWork(PixivModel):
         )
 
     async def download(
-            self, *,
-            full: bool = False,
-            output: Optional[Union[str, Path]] = None,
-            client: Optional["PixivClient"] = None
+        self, *,
+        full: bool = False,
+        output: Optional[Union[str, Path]] = None,
+        client: Optional["PixivClient"] = None
     ) -> List[bytes]:
         if client is None:
             from async_pixiv.client import PixivClient
@@ -244,7 +269,7 @@ class ArtWork(PixivModel):
             return result
 
     async def ugoira_metadata(
-            self, client: Optional["PixivClient"] = None
+        self, client: Optional["PixivClient"] = None
     ) -> Optional["UgoiraMetadata"]:
         if self.type != ArtWorkType.ugoira:
             return None
@@ -254,8 +279,8 @@ class ArtWork(PixivModel):
         return (await client.ILLUST.ugoira_metadata(self.id)).metadata
 
     async def download_ugoira(
-            self, client: Optional["PixivClient"] = None, *,
-            type: UGOIRA_RESULT_TYPE = 'zip'
+        self, client: Optional["PixivClient"] = None, *,
+        type: UGOIRA_RESULT_TYPE = 'zip'
     ) -> Optional[Union[List[bytes], Dict[str, bytes], Iterator[bytes]]]:
         if self.type != ArtWorkType.ugoira:
             raise ArtWorkTypeError(
