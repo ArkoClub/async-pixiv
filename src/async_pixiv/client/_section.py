@@ -36,6 +36,7 @@ from async_pixiv.model.result import (
     UserRelatedResult,
     UserSearchResult,
 )
+from async_pixiv.utils.func import raise_for_result
 from ..error import ArtWorkTypeError
 from ..model.artwork import ArtWorkType
 
@@ -184,6 +185,7 @@ class USER(_Section):
             word=word, sort=sort, duration=duration, filter=filter,
             offset=offset, **kwargs
         )
+        raise_for_result(data)
         return UserSearchResult.parse_obj(data)
 
     async def detail(
@@ -194,6 +196,7 @@ class USER(_Section):
         if id is None:
             id = self._client.account.id
         data = await super(USER, self).detail(id=id, filter=filter)
+        raise_for_result(data)
         return UserDetailResult.parse_obj(data)
 
     async def illusts(

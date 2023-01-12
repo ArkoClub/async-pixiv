@@ -6,7 +6,9 @@ from typing import (
 
 from yarl import URL
 
-__all__ = ['proxies_from_env']
+from async_pixiv.error import ApiError, RateLimit
+
+__all__ = ['proxies_from_env', 'raise_for_result']
 
 T_Wrapped = TypeVar("T_Wrapped", bound=Callable)
 
@@ -19,3 +21,12 @@ def proxies_from_env() -> List[URL]:
         for k, v in getproxies().items()
         if k in ("https", "http", "socks4", "socks5", "ws", "wss")
     ]
+
+
+def raise_for_result(data: dict) -> None:
+    if data.get('error') is not None:
+        error = data['error']
+        if error['reason'] == 'Rate Limit':
+            raise RateLimit(data)
+        else:
+            raise ApiError(data)
