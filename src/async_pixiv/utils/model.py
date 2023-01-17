@@ -50,7 +50,7 @@ except ImportError:
 if TYPE_CHECKING:
     from aiohttp import ClientResponse
 
-__all__ = ['Net']
+__all__ = ["Net"]
 
 logger = getLogger(__name__)
 
@@ -63,8 +63,14 @@ class Config(NamedTuple):
 
 class Net(object):
     __slots__ = (
-        '_conn_kwargs', '_timeout', '_session', '_proxies', '_trust_env',
-        '_retry', '_retry_sleep', '_sync_session'
+        "_conn_kwargs",
+        "_timeout",
+        "_session",
+        "_proxies",
+        "_trust_env",
+        "_retry",
+        "_retry_sleep",
+        "_sync_session",
     )
 
     _limit: int
@@ -81,15 +87,11 @@ class Net(object):
                 proxy: Optional[URL] = None
 
                 for p in self._proxies:
-                    if p.scheme in ['socks5', 'socks4', 'http', 'ws']:
+                    if p.scheme in ["socks5", "socks4", "http", "ws"]:
                         proxy = p
                         break
 
-                if (
-                        proxy is not None
-                        and
-                        proxy.scheme in ['socks5', 'socks4', 'http']
-                ):
+                if proxy is not None and proxy.scheme in ["socks5", "socks4", "http"]:
                     connector = ProxyConnector.from_url(str(proxy))
                 else:
                     connector = TCPConnector(**self._conn_kwargs)
@@ -102,12 +104,17 @@ class Net(object):
         return self._session
 
     def __init__(
-            self, *, limit: int = 30, timeout: float = 10,
-            proxy: Optional[StrOrURL] = None, trust_env: bool = False,
-            retry: int = 5, retry_sleep: float = 1
+        self,
+        *,
+        limit: int = 30,
+        timeout: float = 10,
+        proxy: Optional[StrOrURL] = None,
+        trust_env: bool = False,
+        retry: int = 5,
+        retry_sleep: float = 1,
     ) -> None:
         self._session = None
-        self._conn_kwargs = {'limit': limit}
+        self._conn_kwargs = {"limit": limit}
         self._timeout = ClientTimeout(timeout)
 
         self._proxies = [URL(str(proxy))] if proxy is not None else []
@@ -119,8 +126,7 @@ class Net(object):
         self._sync_session = Session()
 
     async def __aenter__(self) -> Self:
-        await self._init_session()
-        return self
+        return self.start()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         await self._session.close()
@@ -144,16 +150,17 @@ class Net(object):
                 await self._session.close()
 
     async def _request(
-            self,
-            method: RequestMethod,
-            url: StrOrURL, *,
-            params: Optional[Mapping[str, Any]] = None,
-            headers: Optional[LooseHeaders] = None,
-            data: Any = None,
+        self,
+        method: RequestMethod,
+        url: StrOrURL,
+        *,
+        params: Optional[Mapping[str, Any]] = None,
+        headers: Optional[LooseHeaders] = None,
+        data: Any = None,
     ) -> "ClientResponse":
         proxy = None
         for p in self._proxies:
-            if p.scheme in ['http', 'ws']:
+            if p.scheme in ["http", "ws"]:
                 proxy = p
                 break
         param = dict()
@@ -166,27 +173,25 @@ class Net(object):
                 param.update({key: value})
             if isinstance(value, list):
                 if key in ["sizes", "types"]:
-                    param.update({key: ','.join(map(str, value))})
+                    param.update({key: ",".join(map(str, value))})
                 elif key in ["ids"]:
-                    param.update(
-                        {
-                            f"{key}[]": ",".join([str(pid) for pid in value])
-                        }
-                    )
+                    param.update({f"{key}[]": ",".join([str(pid) for pid in value])})
                 elif key in ["viewed"]:
-                    [
-                        param.update({f"{key}[{k}]": value[k]})
-                        for k in range(len(value))
-                    ]
+                    [param.update({f"{key}[{k}]": value[k]}) for k in range(len(value))]
                 else:
-                    param.update({f"{key}[]": ','.join(map(str, value))})
+                    param.update({f"{key}[]": ",".join(map(str, value))})
             if isinstance(value, bool):
                 param.update({key: str(value).lower()})
         for time in range(self._retry):
             try:
                 return await (await self._init_session()).request(
-                    method, url, params=param, headers=headers, data=data,
-                    proxy=proxy
+                    method,
+                    url,
+                    params=param,
+                    headers=headers,
+                    data=data,
+                    proxy=proxy,
+                    allow_redirects=False,
                 )
             except Exception as e:
                 if time != self._retry - 1:
@@ -196,48 +201,72 @@ class Net(object):
                 raise e
 
     async def get(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
-            headers: Optional[LooseHeaders] = None, data: Any = None,
+        self,
+        url: StrOrURL,
+        *,
+        params: Optional[Mapping[str, Any]] = None,
+        headers: Optional[LooseHeaders] = None,
+        data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
-            'GET', url, params=params, headers=headers, data=data
+            "GET", url, params=params, headers=headers, data=data
         )
 
     async def post(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
-            headers: Optional[LooseHeaders] = None, data: Any = None,
+        self,
+        url: StrOrURL,
+        *,
+        params: Optional[Mapping[str, Any]] = None,
+        headers: Optional[LooseHeaders] = None,
+        data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
-            'POST', url, params=params, headers=headers, data=data
+            "POST", url, params=params, headers=headers, data=data
         )
 
     async def head(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
-            headers: Optional[LooseHeaders] = None, data: Any = None,
+        self,
+        url: StrOrURL,
+        *,
+        params: Optional[Mapping[str, Any]] = None,
+        headers: Optional[LooseHeaders] = None,
+        data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
-            'HEAD', url, params=params, headers=headers, data=data
+            "HEAD", url, params=params, headers=headers, data=data
         )
 
     async def put(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
-            headers: Optional[LooseHeaders] = None, data: Any = None,
+        self,
+        url: StrOrURL,
+        *,
+        params: Optional[Mapping[str, Any]] = None,
+        headers: Optional[LooseHeaders] = None,
+        data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
             "PUT", url, params=params, headers=headers, data=data
         )
 
     async def patch(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
-            headers: Optional[LooseHeaders] = None, data: Any = None,
+        self,
+        url: StrOrURL,
+        *,
+        params: Optional[Mapping[str, Any]] = None,
+        headers: Optional[LooseHeaders] = None,
+        data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
             "PATCH", url, params=params, headers=headers, data=data
         )
 
     async def delete(
-            self, url: StrOrURL, *, params: Optional[Mapping[str, Any]] = None,
-            headers: Optional[LooseHeaders] = None, data: Any = None,
+        self,
+        url: StrOrURL,
+        *,
+        params: Optional[Mapping[str, Any]] = None,
+        headers: Optional[LooseHeaders] = None,
+        data: Any = None,
     ) -> "ClientResponse":
         return await self._request(
             "DELETE", url, params=params, headers=headers, data=data
@@ -246,7 +275,7 @@ class Net(object):
     def sync_request(self, *args, **kwargs):
         proxy = None
         for p in self._proxies:
-            if p.scheme in ['http', 'ws']:
+            if p.scheme in ["http", "ws"]:
                 proxy = p
                 break
         if proxy is not None:

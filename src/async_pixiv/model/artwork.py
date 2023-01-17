@@ -54,25 +54,26 @@ if TYPE_CHECKING:
     )
 
 __all__ = [
-    'ArtWork', 'ArtWorkType',
-    'Comment',
-    'UgoiraMetadata',
+    "ArtWork",
+    "ArtWorkType",
+    "Comment",
+    "UgoiraMetadata",
 ]
 
 UGOIRA_RESULT_TYPE = (
-    Literal['zip', 'jpg', 'all', 'iter', 'gif']
-    if imageio else
-    Literal['zip', 'jpg', 'all', 'iter']
+    Literal["zip", "jpg", "all", "iter", "gif"]
+    if imageio
+    else Literal["zip", "jpg", "all", "iter"]
 )
 
 session = Session()
 
 
 class ArtWorkType(Enum):
-    illust = 'illust'
-    ugoira = 'ugoira'
-    manga = 'manga'
-    novel = 'novel'
+    illust = "illust"
+    ugoira = "ugoira"
+    manga = "manga"
+    novel = "novel"
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, ArtWorkType):
@@ -117,7 +118,7 @@ class ArtWork(PixivModel):
     is_muted: bool
     total_comments: Optional[int]
     comment_access_control: Optional[int]
-    ai_type: AIType = Field(alias='illust_ai_type')
+    ai_type: AIType = Field(alias="illust_ai_type")
 
     _is_r18: Optional[bool] = PrivateAttr(None)
     _is_r18g: Optional[bool] = PrivateAttr(None)
@@ -131,23 +132,20 @@ class ArtWork(PixivModel):
         if self._is_r18 is None:
             try:
                 from async_pixiv.client import PixivClient
+
                 client = PixivClient.get_client()
-                response = client.sync_request('GET', str(self.link))
+                response = client.sync_request("GET", str(self.link))
                 response.raise_for_status()
                 html = response.text
                 title: str = re.findall(
                     r"<meta property=\"twitter:title\" content=\"(.*?)\">", html
                 )[0]
-                self._is_r18 = title.startswith('[R-18')
+                self._is_r18 = title.startswith("[R-18")
             except HTTPError:
                 self._is_r18 = any(
                     map(
-                        lambda x: (
-                                'R-18' in x.name.upper()
-                                or
-                                'R18' in x.name.upper()
-                        ),
-                        self.tags
+                        lambda x: ("R-18" in x.name.upper() or "R18" in x.name.upper()),
+                        self.tags,
                     )
                 )
 
@@ -158,23 +156,22 @@ class ArtWork(PixivModel):
         if self._is_r18g is None:
             try:
                 from async_pixiv.client import PixivClient
+
                 client = PixivClient.get_client()
-                response = client.sync_request('GET', str(self.link))
+                response = client.sync_request("GET", str(self.link))
                 response.raise_for_status()
                 html = response.text
                 title = re.findall(
                     r"<meta property=\"twitter:title\" content=\"(.*?)\">", html
                 )[0]
-                self._is_r18g = title.startswith('[R-18G]')
+                self._is_r18g = title.startswith("[R-18G]")
             except HTTPError:
                 self._is_r18g = any(
                     map(
                         lambda x: (
-                                'R-18G' in x.name.upper()
-                                or
-                                'R18G' in x.name.upper()
+                            "R-18G" in x.name.upper() or "R18G" in x.name.upper()
                         ),
-                        self.tags
+                        self.tags,
                     )
                 )
         return self._is_r18g
@@ -190,80 +187,83 @@ class ArtWork(PixivModel):
             return [self.meta_single_page.original]
         result = []
         for page in self.meta_pages:
-            result.append(
-                URL(
-                    str(
-                        page.image_urls.original or page.image_urls.large
-                    )
-                )
-            )
+            result.append(URL(str(page.image_urls.original or page.image_urls.large)))
         return result
 
     async def detail(
-        self, client: Optional["PixivClient"] = None, *,
-        for_ios: bool = True
+        self, client: Optional["PixivClient"] = None, *, for_ios: bool = True
     ) -> "IllustDetailResult":
-        from async_pixiv.client._section import SearchFilter
+        from async_pixiv.client._section._base import SearchFilter
 
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
 
         return await client.ILLUST.detail(
-            self.id,
-            filter=SearchFilter.ios if for_ios else SearchFilter.android
+            self.id, filter=SearchFilter.ios if for_ios else SearchFilter.android
         )
 
     async def comments(
-        self, client: Optional["PixivClient"] = None, *,
-        offset: Optional[int] = None
+        self, client: Optional["PixivClient"] = None, *, offset: Optional[int] = None
     ) -> "IllustCommentResult":
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
         return await client.ILLUST.comments(self.id, offset=offset)
 
     async def related(
-        self, client: Optional["PixivClient"] = None, *,
+        self,
+        client: Optional["PixivClient"] = None,
+        *,
         for_ios: bool = True,
         offset: Optional[int] = None,
-        seed_id: Optional[int] = None
+        seed_id: Optional[int] = None,
     ) -> "IllustRelatedResult":
-        from async_pixiv.client._section import SearchFilter
+        from async_pixiv.client._section._base import SearchFilter
+
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
         return await client.ILLUST.related(
-            self.id, offset=offset, seed_ids=seed_id,
-            filter=SearchFilter.ios if for_ios else SearchFilter.android
+            self.id,
+            offset=offset,
+            seed_ids=seed_id,
+            filter=SearchFilter.ios if for_ios else SearchFilter.android,
         )
 
     async def download(
-        self, *,
+        self,
+        *,
         full: bool = False,
         output: Optional[Union[str, Path]] = None,
-        client: Optional["PixivClient"] = None
+        client: Optional["PixivClient"] = None,
     ) -> List[bytes]:
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
         if not full or not self.meta_pages:
-            return [await client.download(
-                str(
-                    self.meta_single_page.original or
-                    self.image_urls.original or
-                    self.image_urls.large
+            return [
+                await client.download(
+                    str(
+                        self.meta_single_page.original
+                        or self.image_urls.original
+                        or self.image_urls.large
+                    )
                 )
-            )]
+            ]
         else:
             result: List[bytes] = []
             for meta_page in self.meta_pages:
                 result.append(
                     await client.download(
                         str(
-                            meta_page.image_urls.original or
-                            meta_page.image_urls.large
-                        ), output=output
+                            meta_page.image_urls.original or meta_page.image_urls.large
+                        ),
+                        output=output,
                     )
                 )
             return result
@@ -275,20 +275,24 @@ class ArtWork(PixivModel):
             return None
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
         return (await client.ILLUST.ugoira_metadata(self.id)).metadata
 
     async def download_ugoira(
-        self, client: Optional["PixivClient"] = None, *,
-        type: UGOIRA_RESULT_TYPE = 'zip'
+        self,
+        client: Optional["PixivClient"] = None,
+        *,
+        type: UGOIRA_RESULT_TYPE = "zip",
     ) -> Optional[Union[List[bytes], Dict[str, bytes], Iterator[bytes]]]:
         if self.type != ArtWorkType.ugoira:
             raise ArtWorkTypeError(
-                'If you want to download a moving image, '
-                'please use this method: \"download\"'
+                "If you want to download a moving image, "
+                'please use this method: "download"'
             )
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
         metadata = await self.ugoira_metadata(client)
         zip_url = metadata.zip_url
@@ -297,7 +301,7 @@ class ArtWork(PixivModel):
         )
         if data is None:
             return None
-        if type == 'zip':
+        if type == "zip":
             return data
         bytes_io = BytesIO(data)
         zip_file = ZipFile(bytes_io)
@@ -305,30 +309,24 @@ class ArtWork(PixivModel):
         for frame_info in metadata.frames:
             with zip_file.open(frame_info.file) as f:
                 frames.append(f.read())
-        if type == 'jpg':
+        if type == "jpg":
             return frames
-        elif type == 'iter':
+        elif type == "iter":
             return iter(frames)
-        elif imageio and type == 'gif':
+        elif imageio and type == "gif":
             frames = zip(
-                frames,
-                map(lambda x: '.' + x.file.split('.')[-1], metadata.frames)
+                frames, map(lambda x: "." + x.file.split(".")[-1], metadata.frames)
             )
             return imageio.v3.imwrite(
                 "<bytes>",
-                list(
-                    map(
-                        lambda x: imageio.v3.imread(x[0], extension=x[1]),
-                        frames
-                    )
-                ),
+                list(map(lambda x: imageio.v3.imread(x[0], extension=x[1]), frames)),
                 plugin="pillow",
-                extension='.gif',
+                extension=".gif",
                 duration=list(map(lambda x: x.delay / 1000, metadata.frames)),
                 loop=0,
             )
         else:
-            return {'zip': data, 'frames': frames}
+            return {"zip": data, "frames": frames}
 
 
 class Comment(PixivModel):
@@ -336,9 +334,9 @@ class Comment(PixivModel):
     comment: str
     date: datetime
     user: User
-    parent: Optional["Comment"] = Field(alias='parent_comment')
+    parent: Optional["Comment"] = Field(alias="parent_comment")
 
-    _check = null_dict_validator('parent')
+    _check = null_dict_validator("parent")
 
 
 class UgoiraMetadata(PixivModel):
@@ -346,5 +344,5 @@ class UgoiraMetadata(PixivModel):
         file: str
         delay: int
 
-    zip_url: ImageUrl = Field(alias='zip_urls')
+    zip_url: ImageUrl = Field(alias="zip_urls")
     frames: List[Frame]

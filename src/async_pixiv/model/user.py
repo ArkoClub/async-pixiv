@@ -20,7 +20,10 @@ if TYPE_CHECKING:
     )
 
 __all__ = [
-    'User', 'UserProfile', 'UserProfilePublicity', 'UserWorkSpace',
+    "User",
+    "UserProfile",
+    "UserProfilePublicity",
+    "UserWorkSpace",
 ]
 
 
@@ -28,7 +31,7 @@ __all__ = [
 class User(PixivModel):
     id: int
     name: str
-    account: str
+    account: Optional[str]
     profile_image_urls: ImageUrl
     is_followed: Optional[bool]
     comment: Optional[str]
@@ -38,73 +41,94 @@ class User(PixivModel):
         return URL(f"https://www.pixiv.net/users/{self.id}/")
 
     async def detail(
-            self, client: Optional["PixivClient"] = None, *,
-            for_ios: bool = True
+        self, client: Optional["PixivClient"] = None, *, for_ios: bool = True
     ) -> "UserDetailResult":
-        from async_pixiv.client._section import SearchFilter
+        from async_pixiv.client._section._base import SearchFilter
 
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
 
         return await client.USER.detail(
-            self.id,
-            filter=SearchFilter.ios if for_ios else SearchFilter.android
+            self.id, filter=SearchFilter.ios if for_ios else SearchFilter.android
         )
 
     async def illusts(
-            self, client: Optional["PixivClient"] = None, *,
-            for_ios: bool = True, offset: Optional[int] = None
+        self,
+        client: Optional["PixivClient"] = None,
+        *,
+        for_ios: bool = True,
+        offset: Optional[int] = None,
     ) -> "UserIllustsResult":
-        from async_pixiv.client._section import SearchFilter
+        from async_pixiv.client._section._base import SearchFilter
 
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
         return await client.USER.illusts(
-            self.id, offset=offset,
+            self.id,
+            offset=offset,
             filter=SearchFilter.ios if for_ios else SearchFilter.android,
         )
 
     async def bookmarks(
-            self, client: Optional["PixivClient"] = None, *,
-            for_ios: bool = True, tag: Optional[str] = None,
-            max_bookmark_id: Optional[int] = None,
+        self,
+        client: Optional["PixivClient"] = None,
+        *,
+        for_ios: bool = True,
+        tag: Optional[str] = None,
+        max_bookmark_id: Optional[int] = None,
     ) -> "UserBookmarksIllustsResult":
-        from async_pixiv.client._section import SearchFilter
+        from async_pixiv.client._section._base import SearchFilter
 
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
         return await client.USER.bookmarks(
-            self.id, tag=tag, max_bookmark_id=max_bookmark_id,
+            self.id,
+            tag=tag,
+            max_bookmark_id=max_bookmark_id,
             filter=SearchFilter.ios if for_ios else SearchFilter.android,
         )
 
     async def novels(
-            self, client: Optional["PixivClient"] = None, *,
-            for_ios: bool = True, offset: int = None
+        self,
+        client: Optional["PixivClient"] = None,
+        *,
+        for_ios: bool = True,
+        offset: int = None,
     ) -> "UserNovelsResult":
-        from async_pixiv.client._section import SearchFilter
+        from async_pixiv.client._section._base import SearchFilter
+
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
         return await client.USER.novels(
-            self.id, offset=offset,
-            filter=SearchFilter.ios if for_ios else SearchFilter.android
+            self.id,
+            offset=offset,
+            filter=SearchFilter.ios if for_ios else SearchFilter.android,
         )
 
     async def related(
-            self, client: Optional["PixivClient"] = None, *,
-            for_ios: bool = True, offset: Optional[int] = None
+        self,
+        client: Optional["PixivClient"] = None,
+        *,
+        for_ios: bool = True,
+        offset: Optional[int] = None,
     ) -> "UserRelatedResult":
-        from async_pixiv.client._section import SearchFilter
+        from async_pixiv.client._section._base import SearchFilter
 
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
         return await client.USER.related(
-            self.id, offset=offset,
+            self.id,
+            offset=offset,
             filter=SearchFilter.ios if for_ios else SearchFilter.android,
         )
 

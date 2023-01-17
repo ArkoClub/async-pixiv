@@ -1,21 +1,34 @@
 from enum import IntEnum
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from pydantic import HttpUrl
+from yarl import URL
 
 from async_pixiv.model._base import PixivModel
 
-__all__ = [
-    'Series',
-    'ImageUrl',
-    'Tag', 'TagTranslation',
-    'AIType'
-]
+if TYPE_CHECKING:
+    from async_pixiv import PixivClient
+    from async_pixiv.model.result import NovelSeriesResult
+
+__all__ = ["Series", "ImageUrl", "Tag", "TagTranslation", "AIType"]
 
 
 class Series(PixivModel):
     id: int
     title: str
+
+    @property
+    def link(self) -> URL:
+        return URL(f"https://www.pixiv.net/novel/series/{self.id}")
+
+    async def detail(
+        self, client: Optional["PixivClient"] = None
+    ) -> Optional["NovelSeriesResult"]:
+        if client is None:
+            from async_pixiv.client import PixivClient
+
+            client = PixivClient.get_client()
+        return await client.NOVEL.series(self.id)
 
 
 class ImageUrl(PixivModel):
@@ -35,6 +48,18 @@ class Tag(PixivModel):
     name: str
     translated_name: Optional[str]
     added_by_uploaded_user: Optional[bool]
+
+    def __init__(
+        self,
+        name: str,
+        translated_name: Optional[str] = None,
+        added_by_uploaded_user: Optional[bool] = None,
+    ) -> None:
+        super().__init__(
+            name=name,
+            translated_name=translated_name,
+            added_by_uploaded_user=added_by_uploaded_user,
+        )
 
 
 class AIType(IntEnum):

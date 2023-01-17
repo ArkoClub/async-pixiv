@@ -1,10 +1,13 @@
 from contextlib import contextmanager
 
+__all__ = ("no_warning",)
+
 
 @contextmanager
 def no_warning() -> None:
     import warnings
     from copy import deepcopy
+
     filters = deepcopy(warnings.filters)
     try:
         warnings.filterwarnings("ignore")
@@ -13,4 +16,4 @@ def no_warning() -> None:
         warnings.resetwarnings()
         for f in filters:
             # noinspection PyUnresolvedReferences
-            warnings.filters.append(filters)
+            warnings.filters.append(f)

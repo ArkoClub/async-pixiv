@@ -43,22 +43,27 @@ if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
 
 __all__ = [
-    'UserPreview', 'UserSearchResult', 'UserIllustsResult',
-    'UserBookmarksIllustsResult', 'UserNovelsResult', 'UserDetailResult',
-    'UserRelatedResult',
-
-    'IllustSearchResult', 'IllustDetailResult', 'IllustCommentResult',
-    'IllustRelatedResult', 'IllustNewResult',
-
-    'UgoiraMetadataResult',
-
-    'RecommendedResult',
-
-    'NovelSearchResult', 'NovelContentResult', 'NovelSeriesResult',
-    'NovelDetailResult',
+    "UserPreview",
+    "UserSearchResult",
+    "UserIllustsResult",
+    "UserBookmarksIllustsResult",
+    "UserNovelsResult",
+    "UserDetailResult",
+    "UserRelatedResult",
+    "IllustSearchResult",
+    "IllustDetailResult",
+    "IllustCommentResult",
+    "IllustRelatedResult",
+    "IllustNewResult",
+    "UgoiraMetadataResult",
+    "RecommendedResult",
+    "NovelSearchResult",
+    "NovelContentResult",
+    "NovelSeriesResult",
+    "NovelDetailResult",
 ]
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class PageResult(ABC, PixivModel, Generic[T]):
@@ -69,25 +74,25 @@ class PageResult(ABC, PixivModel, Generic[T]):
     def __iter__(self) -> Iterator[T]:
         pass
 
-    async def next(
-            self, client: Optional["PixivClient"] = None
-    ) -> Optional[Self]:
+    async def next(self, client: Optional["PixivClient"] = None) -> Optional[Self]:
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
-        if getattr(self, 'next_url', None):
+        if getattr(self, "next_url", None):
             data = await (await client.get(str(self.next_url))).json()
             return self.__class__.parse_obj(data)
         else:
             return None
 
     async def iter_all_pages(
-            self, client: Optional["PixivClient"] = None
+        self, client: Optional["PixivClient"] = None
     ) -> AsyncIterator[T]:
         for result in self:
             yield result
         if client is None:
             from async_pixiv.client import PixivClient
+
             client = PixivClient.get_client()
         next_results = await self.next(client)
         while next_results is not None:
@@ -103,7 +108,7 @@ class UserPreview(PixivModel):
 
 
 class UserSearchResult(PageResult[UserPreview]):
-    users: List[UserPreview] = Field([], alias='user_previews')
+    users: List[UserPreview] = Field([], alias="user_previews")
 
     def __iter__(self) -> Iterator[UserPreview]:
         return iter(self.users)
@@ -135,7 +140,7 @@ class UserDetailResult(PixivModel):
 
 
 class UserRelatedResult(PixivModel):
-    users: List[UserPreview] = Field(alias='user_previews')
+    users: List[UserPreview] = Field(alias="user_previews")
 
     def __iter__(self) -> Iterator[UserPreview]:
         return iter(self.users)
@@ -150,10 +155,10 @@ class IllustDetailResult(PixivModel):
 
 
 class IllustCommentResult(PageResult[Comment]):
-    total: int = Field(0, alias='total_comments')
+    total: int = Field(0, alias="total_comments")
     comments: List[Comment] = []
     next_url: Optional[AnyHttpUrl]
-    access_comment: Optional[bool] = Field(alias='comment_access_control')
+    access_comment: Optional[bool] = Field(alias="comment_access_control")
 
     def __iter__(self) -> Iterator[Comment]:
         return iter(self.comments)
@@ -185,12 +190,12 @@ class NovelDetailResult(PixivModel):
 
 
 class NovelContentResult(PixivModel):
-    marker: Optional[NovelMaker] = Field(alias='novel_marker')
-    content: str = Field(alias='novel_text')
-    previous: Optional[Novel] = Field(alias='series_prev')
-    next: Optional[Novel] = Field(alias='series_next')
+    marker: Optional[NovelMaker] = Field(alias="novel_marker")
+    content: str = Field(alias="novel_text")
+    previous: Optional[Novel] = Field(alias="series_prev")
+    next: Optional[Novel] = Field(alias="series_next")
 
-    _check = null_dict_validator('marker', 'previous', 'next')
+    _check = null_dict_validator("marker", "previous", "next")
 
     @property
     def text(self) -> str:
@@ -198,6 +203,6 @@ class NovelContentResult(PixivModel):
 
 
 class NovelSeriesResult(NovelSearchResult):
-    series: NovelSeries = Field(alias='novel_series_detail')
-    first_novel: Novel = Field(alias='novel_series_first_novel')
-    latest_novel: Novel = Field(alias='novel_series_latest_novel')
+    series: NovelSeries = Field(alias="novel_series_detail")
+    first_novel: Novel = Field(alias="novel_series_first_novel")
+    latest_novel: Novel = Field(alias="novel_series_latest_novel")
