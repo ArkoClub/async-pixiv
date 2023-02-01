@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING
 from pydantic import HttpUrl
 from yarl import URL
 
-from async_pixiv.model._base import PixivModel
+from async_pixiv.model._base import PixivModel, PixivModelConfig
 
 if TYPE_CHECKING:
     from async_pixiv import PixivClient
@@ -37,8 +37,15 @@ class ImageUrl(PixivModel):
     large: Optional[HttpUrl]
     original: Optional[HttpUrl]
 
+    @property
+    def link(self) -> HttpUrl:
+        return self.original or self.large or self.medium or self.square_medium
+
 
 class TagTranslation(PixivModel):
+    class Config(PixivModelConfig):
+        extra = "allow"
+
     zh: Optional[str]
     en: Optional[str]
     jp: Optional[str]

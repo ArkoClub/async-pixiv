@@ -22,8 +22,8 @@ from async_pixiv.model._base import (
     PixivModel,
     null_dict_validator,
 )
-from async_pixiv.model.artwork import (
-    ArtWork,
+from async_pixiv.model.illust import (
+    Illust,
     Comment,
     UgoiraMetadata,
 )
@@ -103,7 +103,7 @@ class PageResult(ABC, PixivModel, Generic[T]):
 
 class UserPreview(PixivModel):
     user: User
-    illusts: List[ArtWork]
+    illusts: List[Illust]
     is_muted: bool
 
 
@@ -114,10 +114,10 @@ class UserSearchResult(PageResult[UserPreview]):
         return iter(self.users)
 
 
-class UserIllustsResult(PageResult[ArtWork]):
-    illusts: List[ArtWork]
+class UserIllustsResult(PageResult[Illust]):
+    illusts: List[Illust]
 
-    def __iter__(self) -> Iterator[ArtWork]:
+    def __iter__(self) -> Iterator[Illust]:
         return iter(self.illusts)
 
 
@@ -151,7 +151,7 @@ class IllustSearchResult(UserIllustsResult):
 
 
 class IllustDetailResult(PixivModel):
-    illust: ArtWork
+    illust: Illust
 
 
 class IllustCommentResult(PageResult[Comment]):
@@ -177,7 +177,7 @@ class UgoiraMetadataResult(PixivModel):
 
 
 class RecommendedResult(IllustSearchResult):
-    ranking_illusts: List[ArtWork]
+    ranking_illusts: List[Illust]
     contest_exists: bool
 
 

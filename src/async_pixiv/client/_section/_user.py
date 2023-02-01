@@ -12,7 +12,7 @@ from async_pixiv.client._section._base import (
     V1_API,
     _Section,
 )
-from async_pixiv.client._section._illust import IllustType
+from async_pixiv.model.illust import IllustType
 from async_pixiv.model.result import (
     UserBookmarksIllustsResult,
     UserDetailResult,
@@ -21,7 +21,10 @@ from async_pixiv.model.result import (
     UserRelatedResult,
     UserSearchResult,
 )
-from async_pixiv.utils.func import raise_for_result
+
+__all__ = ("USER",)
+
+from async_pixiv.utils.context import set_pixiv_client
 
 
 # noinspection PyShadowingBuiltins
@@ -58,8 +61,8 @@ class USER(_Section):
             offset=offset,
             **kwargs,
         )
-        raise_for_result(data)
-        return UserSearchResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return UserSearchResult.parse_obj(data)
 
     async def detail(
         self,
@@ -72,8 +75,8 @@ class USER(_Section):
         if id is None:
             id = self._client.account.id
         data = await super(USER, self).detail(id=id, filter=filter)
-        raise_for_result(data)
-        return UserDetailResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return UserDetailResult.parse_obj(data)
 
     async def illusts(
         self,
@@ -89,7 +92,7 @@ class USER(_Section):
     ) -> UserIllustsResult:
         if id is None:
             id = self._client.account.id
-        data = await (
+        data = (
             await self._client.get(
                 V1_API / "user/illusts",
                 params={
@@ -100,7 +103,8 @@ class USER(_Section):
                 },
             )
         ).json()
-        return UserIllustsResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return UserIllustsResult.parse_obj(data)
 
     async def bookmarks(
         self,
@@ -114,7 +118,7 @@ class USER(_Section):
     ) -> UserBookmarksIllustsResult:
         if id is None:
             id = self._client.account.id
-        data = await (
+        data = (
             await self._client.get(
                 V1_API / "user/bookmarks/illust",
                 params={
@@ -126,7 +130,8 @@ class USER(_Section):
                 },
             )
         ).json()
-        return UserBookmarksIllustsResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return UserBookmarksIllustsResult.parse_obj(data)
 
     async def novels(
         self,
@@ -138,13 +143,14 @@ class USER(_Section):
         offset: int = None,
     ) -> UserNovelsResult:
         id = self._client.account.id if id is None else id
-        data = await (
+        data = (
             await self._client.get(
                 V1_API / "user/novels",
                 params={"user_id": id, "filter": filter, "offset": offset},
             )
         ).json()
-        return UserNovelsResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return UserNovelsResult.parse_obj(data)
 
     async def related(
         self,
@@ -157,10 +163,11 @@ class USER(_Section):
     ) -> UserRelatedResult:
         if id is None:
             id = self._client.account.id
-        data = await (
+        data = (
             await self._client.get(
                 V1_API / "user/related",
                 params={"seed_user_id": id, "filter": filter, "offset": offset},
             )
         ).json()
-        return UserRelatedResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return UserRelatedResult.parse_obj(data)

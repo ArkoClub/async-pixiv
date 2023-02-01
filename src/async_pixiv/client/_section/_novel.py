@@ -22,6 +22,10 @@ from async_pixiv.model.result import (
     NovelSeriesResult,
 )
 
+__all__ = ("NOVEL",)
+
+from async_pixiv.utils.context import set_pixiv_client
+
 
 # noinspection PyShadowingBuiltins
 class NOVEL(_Section):
@@ -75,7 +79,8 @@ class NOVEL(_Section):
             merge_plain_keyword_results=merge_plain_keyword_results,
             include_translated_tag_results=include_translated_tag_results,
         )
-        return NovelSearchResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return NovelSearchResult.parse_obj(data)
 
     async def detail(
         self,
@@ -85,16 +90,18 @@ class NOVEL(_Section):
             Union[Literal["for_android", "for_ios"], SearchFilter]
         ] = SearchFilter.ios,
     ) -> NovelDetailResult:
-        data = await (
+        data = (
             await self._client.get(V2_API / "novel/detail", params={"novel_id": id})
         ).json()
-        return NovelDetailResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return NovelDetailResult.parse_obj(data)
 
     async def content(self, id: int) -> NovelContentResult:
-        data = await (
+        data = (
             await self._client.get(V1_API / "novel/text", params={"novel_id": id})
         ).json()
-        return NovelContentResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return NovelContentResult.parse_obj(data)
 
     async def series(
         self,
@@ -104,9 +111,10 @@ class NOVEL(_Section):
             Union[Literal["for_android", "for_ios"], SearchFilter]
         ] = SearchFilter.ios,
     ) -> NovelSeriesResult:
-        data = await (
+        data = (
             await self._client.get(
                 V2_API / "novel/series", params={"series_id": id, "filter": filter}
             )
         ).json()
-        return NovelSeriesResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return NovelSeriesResult.parse_obj(data)

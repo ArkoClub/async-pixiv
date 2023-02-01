@@ -1,16 +1,15 @@
 import logging
-from copy import deepcopy
 from functools import wraps
 from io import BytesIO
 from pathlib import Path
 from threading import Lock as ThreadLock
 from typing import (
     Any,
+    AsyncIterator,
     Callable,
     ClassVar,
     Dict,
     List,
-    Mapping,
     NamedTuple,
     Optional,
     TYPE_CHECKING,
@@ -19,13 +18,32 @@ from typing import (
     Union,
 )
 
+from aiofiles import open as async_open
+
 # noinspection PyUnresolvedReferences
 from aiofiles.tempfile import SpooledTemporaryFile
-from aiohttp.typedefs import (
-    LooseHeaders,
-    StrOrURL,
-)
+from aiohttp.typedefs import StrOrURL
+from aiolimiter import AsyncLimiter
 from arkowrapper import ArkoWrapper
+from httpx import USE_CLIENT_DEFAULT
+
+# noinspection PyProtectedMember
+from httpx._client import UseClientDefault
+
+# noinspection PyProtectedMember
+from httpx._types import (
+    AuthTypes,
+    CookieTypes,
+    HeaderTypes,
+    ProxiesTypes,
+    QueryParamTypes,
+    RequestContent,
+    RequestData,
+    RequestExtensions,
+    RequestFiles,
+    TimeoutTypes,
+    URLTypes,
+)
 from typing_extensions import ParamSpec
 
 # noinspection PyProtectedMember
@@ -35,8 +53,9 @@ from async_pixiv.error import (
     OauthError,
 )
 from async_pixiv.model.user import User
-from async_pixiv.utils.model import Net
-from async_pixiv.utils.typed import RequestMethod
+from async_pixiv.utils.context import set_pixiv_client
+from async_pixiv.utils.net import Net
+from async_pixiv.utils.overwrite import Response
 
 if TYPE_CHECKING:
     from async_pixiv.client import (
@@ -44,7 +63,6 @@ if TYPE_CHECKING:
         ILLUST,
         NOVEL,
     )
-    from aiohttp import ClientResponse
 
 __all__ = ["PixivClient"]
 
@@ -129,17 +147,18 @@ class PixivClient(Net):
     def __init__(
         self,
         *,
-        limit: int = 30,
+        max_rate: float = 100,
+        rate_time_period: float = 60,
         timeout: float = 10,
-        proxy: Optional[StrOrURL] = None,
+        proxies: Optional[ProxiesTypes] = None,
         trust_env: bool = False,
         retry: int = 5,
         retry_sleep: float = 1,
     ):
         super().__init__(
-            limit=limit,
+            rate_limiter=AsyncLimiter(max_rate, rate_time_period),
             timeout=timeout,
-            proxy=proxy,
+            proxies=proxies,
             trust_env=trust_env,
             retry=retry,
             retry_sleep=retry_sleep,
@@ -163,26 +182,98 @@ class PixivClient(Net):
     def set_accept_language(self, language: str) -> None:
         self._request_headers.update({"Accept-Language": language})
 
-    async def _request(
+    async def request(
         self,
-        method: RequestMethod,
-        url: StrOrURL,
+        method: str,
+        url: URLTypes,
         *,
-        params: Optional[Mapping[str, Any]] = None,
-        headers: Optional[LooseHeaders] = None,
-        data: Any = None,
-    ) -> "ClientResponse":
-        request_headers = deepcopy(self._request_headers)
-        if headers is not None:
-            for key in headers:
-                request_headers[key.lower().title()] = headers[key]
-        if self.access_token is not None:
-            request_headers.update({"Authorization": f"Bearer {self.access_token}"})
-        return await super(PixivClient, self)._request(
-            method, url, params=params, headers=request_headers, data=data
+        content: Optional[RequestContent] = None,
+        data: Optional[RequestData] = None,
+        files: Optional[RequestFiles] = None,
+        json: Optional[Any] = None,
+        params: Optional[QueryParamTypes] = None,
+        headers: Optional[HeaderTypes] = None,
+        cookies: Optional[CookieTypes] = None,
+        auth: Union[AuthTypes, UseClientDefault, None] = USE_CLIENT_DEFAULT,
+        follow_redirects: Union[UseClientDefault, bool] = USE_CLIENT_DEFAULT,
+        timeout: Union[UseClientDefault, TimeoutTypes] = USE_CLIENT_DEFAULT,
+        extensions: Optional[RequestExtensions] = None,
+    ) -> Response:
+        headers = headers or {}
+        params = params or {}
+
+        headers.update(
+            {
+                "Authorization": self.access_token
+                if self.access_token is None
+                else f"Bearer {self.access_token}",
+                **self._request_headers,
+            }
+        )
+        return await super().request(
+            method,
+            str(url),
+            content=content,
+            data=data,
+            files=files,
+            json=json,
+            params={k: v for k, v in params.items() if v is not None},
+            headers={k: v for k, v in headers.items() if v is not None},
+            cookies=cookies,
+            auth=auth,
+            follow_redirects=follow_redirects,
+            timeout=timeout,
+            extensions=extensions,
         )
 
-    async def login_with_pwd(self, username: str, password: str) -> User:
+    def stream(
+        self,
+        method: str,
+        url: URLTypes,
+        *,
+        content: Optional[RequestContent] = None,
+        data: Optional[RequestData] = None,
+        files: Optional[RequestFiles] = None,
+        json: Optional[Any] = None,
+        params: Optional[QueryParamTypes] = None,
+        headers: Optional[HeaderTypes] = None,
+        cookies: Optional[CookieTypes] = None,
+        auth: Union[AuthTypes, UseClientDefault, None] = USE_CLIENT_DEFAULT,
+        follow_redirects: Union[UseClientDefault, bool] = USE_CLIENT_DEFAULT,
+        timeout: Union[UseClientDefault, TimeoutTypes] = USE_CLIENT_DEFAULT,
+        extensions: Optional[RequestExtensions] = None,
+    ) -> AsyncIterator[Response]:
+        headers = headers or {}
+        params = params or {}
+
+        headers.update(
+            {
+                "Authorization": self.access_token
+                if self.access_token is None
+                else f"Bearer {self.access_token}",
+                **self._request_headers,
+            }
+        )
+
+        return super().stream(
+            method,
+            str(url),
+            content=content,
+            data=data,
+            files=files,
+            json=json,
+            params={k: v for k, v in params.items() if v is not None},
+            headers={k: v for k, v in headers.items() if v is not None},
+            cookies=cookies,
+            auth=auth,
+            follow_redirects=follow_redirects,
+            timeout=timeout,
+            extensions=extensions,
+        )
+
+    async def login_with_pwd(
+        self, username: str, password: str, proxy: Optional[str] = None
+    ) -> User:
         try:
             from playwright.async_api import async_playwright
         except ImportError:
@@ -208,11 +299,6 @@ class PixivClient(Net):
                 urlencode,
             )
 
-            proxy = None
-            for p in self._proxies:
-                if p.scheme not in ["https", "wss"]:
-                    proxy = str(p)
-                    break
             if proxy is not None:
                 # noinspection PyTypeChecker
                 browser = await playwright.chromium.launch(proxy={"server": proxy})
@@ -286,7 +372,8 @@ class PixivClient(Net):
             await browser.close()
         self.access_token = data["access_token"]
         self.refresh_token = data["refresh_token"]
-        self.account = User.parse_obj(data["user"])
+        with set_pixiv_client(self):
+            self.account = User.parse_obj(data["user"])
         return self.account
 
     async def login_with_token(self, token: str) -> User:
@@ -301,10 +388,11 @@ class PixivClient(Net):
             },
             headers={"User-Agent": self._config.user_agent},
         )
-        data = await response.json()
+        data = response.json()
         self.access_token = data["access_token"]
         self.refresh_token = data["refresh_token"]
-        self.account = User.parse_obj(data["user"])
+        with set_pixiv_client(self):
+            self.account = User.parse_obj(data["user"])
         return self.account
 
     async def login(
@@ -319,23 +407,22 @@ class PixivClient(Net):
             return await self.login_with_pwd(username, password)
 
     async def download(
-        self, url: StrOrURL, *, output: Optional[Union[str, Path, BytesIO]] = None
-    ) -> Optional[bytes]:
-        if output is None:
-            out = True
-            output = BytesIO()
-        else:
-            out = False
-            output = Path(output).resolve().open("wb+")
-        content = (await self.get(url)).content
-        async with SpooledTemporaryFile(mode="wb+") as file:
-            # noinspection PyProtectedMember
-            file._file._file = output
-            while True:
-                data, is_end = await content.readchunk()
-                await file.write(data)
-                if is_end or not data:
-                    break
-            await file.seek(0)
-            if out:
-                return await file.read()
+        self,
+        url: StrOrURL,
+        *,
+        output: Optional[Union[str, Path, BytesIO]] = None,
+        chunk_size: Optional[int] = None,
+    ) -> bytes:
+        data = b""
+        async with self.stream("GET", url) as response:
+            if not isinstance(output, BytesIO) and output:
+                output = Path(output).resolve()
+
+                async with async_open(output) as file:
+                    async for chunk in response.aiter_bytes(chunk_size):
+                        data += chunk
+                        await file.write(chunk)
+            else:
+                async for chunk in response.aiter_bytes(chunk_size):
+                    data += chunk
+        return data

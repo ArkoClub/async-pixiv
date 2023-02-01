@@ -70,21 +70,14 @@ class Novel(PixivModel):
     _is_r18: Optional[bool] = PrivateAttr(None)
 
     @property
-    def is_nsfw(self) -> bool:
-        return self.is_r18
-
-    @property
     def link(self) -> URL:
         return URL(f"https://www.pixiv.net/novel/show.php?id={self.id}")
 
-    @property
-    def is_r18(self) -> bool:
+    async def is_r18(self) -> bool:
         if self._is_r18 is None:
             try:
-                from async_pixiv.client import PixivClient
-
-                client = PixivClient.get_client()
-                response = client.sync_request("GET", str(self.link))
+                client = self._pixiv_client
+                response = await client.get(self.link, follow_redirects=True)
                 response.raise_for_status()
                 html = response.text
                 title: str = re.findall(

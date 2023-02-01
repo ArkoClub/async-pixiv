@@ -1,20 +1,22 @@
-from typing import (
-    Optional,
-    TypeVar,
-)
+from typing import Any, Optional, TYPE_CHECKING, TypeVar
 
 from pydantic import (
     BaseConfig as PydanticBaseConfig,
     BaseModel as PydanticBaseModel,
+    PrivateAttr,
     validator,
 )
 
-__all__ = [
-    'PixivModel', 'PixivModelConfig',
-    'null_dict_validator'
-]
+from async_pixiv.utils.context import PixivClientContext
 
-T = TypeVar('T')
+if TYPE_CHECKING:
+    from async_pixiv.client import PixivClient
+
+    Model = TypeVar("Model", bound="BaseModel")
+
+__all__ = ["PixivModel", "PixivModelConfig", "null_dict_validator"]
+
+T = TypeVar("T")
 
 
 class PixivModelConfig(PydanticBaseConfig):
@@ -29,20 +31,27 @@ class PixivModelConfig(PydanticBaseConfig):
 
 
 class PixivModel(PydanticBaseModel):
-    Config = PixivModelConfig
+    class Config(PixivModelConfig):
+        pass
+
+    _pixiv_client: Optional["PixivClient"] = PrivateAttr(None)
+
+    def __init__(self, **data: Any):
+        super().__init__(**data)
+        self._pixiv_client = PixivClientContext.get()
 
     def __new__(cls, *args, **kwargs):
         cls.update_forward_refs()
         return super(PixivModel, cls).__new__(cls)
 
     def __str__(self) -> str:
-        if hasattr(self, 'id'):
-            return f"<{self.__class__.__name__} id=\"{self.id}\">"
+        if hasattr(self, "id"):
+            return f'<{self.__class__.__name__} id="{self.id}">'
         else:
             return f"<{self.__class__.__name__}>"
-    
+
     def __hash__(self) -> int:
-        if hasattr(self, 'id'):
+        if hasattr(self, "id"):
             return hash((self.__class__.__name__, self.id))
         return super(PixivModel, self).__hash__()
 

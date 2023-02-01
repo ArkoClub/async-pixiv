@@ -71,7 +71,7 @@ class _Section(ABC):
         offset: Optional[int] = None,
         **kwargs,
     ) -> Dict:
-        request = await self._client.get(
+        response = await self._client.get(
             V1_API / f"search/{self._type}",
             params={
                 "word": word,
@@ -83,7 +83,7 @@ class _Section(ABC):
                 **kwargs,
             },
         )
-        return await request.json()
+        return response.json()
 
     async def detail(
         self,
@@ -97,7 +97,7 @@ class _Section(ABC):
             V1_API / f"{self._type}/detail",
             params={f"{self._type}_id": id, "filter": filter},
         )
-        return await request.json()
+        return request.json()
 
 
 SectionType = TypeVar("SectionType", bound=_Section)

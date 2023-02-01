@@ -23,7 +23,7 @@ from async_pixiv.client._section._base import (
     _Section,
 )
 from async_pixiv.error import ArtWorkTypeError
-from async_pixiv.model.artwork import ArtWorkType
+from async_pixiv.model.illust import IllustType
 from async_pixiv.model.result import (
     IllustCommentResult,
     IllustDetailResult,
@@ -33,18 +33,22 @@ from async_pixiv.model.result import (
     RecommendedResult,
     UgoiraMetadataResult,
 )
+from async_pixiv.utils.context import set_pixiv_client
+
+__all__ = ("ILLUST",)
 
 
 # noinspection PyShadowingBuiltins
 class ILLUST(_Section):
     async def follow(self, *, offset: Optional[int] = None) -> IllustSearchResult:
-        data = await (
+        data = (
             await self._client.get(
                 V2_API / "illust/follow",
                 params={"restrict": "public", "offset": offset},
             )
         ).json()
-        return IllustSearchResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return IllustSearchResult.parse_obj(data)
 
     async def search(
         self,
@@ -95,7 +99,8 @@ class ILLUST(_Section):
             start_date=start_date,
             end_date=end_date,
         )
-        return IllustSearchResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return IllustSearchResult.parse_obj(data)
 
     async def detail(
         self,
@@ -106,17 +111,19 @@ class ILLUST(_Section):
         ] = SearchFilter.ios,
     ) -> IllustDetailResult:
         data = await super(ILLUST, self).detail(id, filter=filter)
-        return IllustDetailResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return IllustDetailResult.parse_obj(data)
 
     async def comments(
         self, id: int, *, offset: Optional[int] = None
     ) -> IllustCommentResult:
-        data = await (
+        data = (
             await self._client.get(
                 V1_API / "illust/comments", params={"illust_id": id, "offset": offset}
             )
         ).json()
-        return IllustCommentResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return IllustCommentResult.parse_obj(data)
 
     async def related(
         self,
@@ -128,7 +135,7 @@ class ILLUST(_Section):
         offset: Optional[int] = None,
         seed_ids: Optional[Union[List[int], int]] = None,
     ) -> IllustRelatedResult:
-        data = await (
+        data = (
             await self._client.get(
                 V2_API / "illust/related",
                 params={
@@ -141,7 +148,8 @@ class ILLUST(_Section):
                 },
             )
         ).json()
-        return IllustRelatedResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return IllustRelatedResult.parse_obj(data)
 
     async def recommended(
         self,
@@ -163,7 +171,7 @@ class ILLUST(_Section):
         viewed: Optional[List[int]] = None,
     ) -> RecommendedResult:
         # noinspection SpellCheckingInspection
-        data = await (
+        data = (
             await self._client.get(
                 V1_API
                 / ("illust/recommended" if with_auth else "illust/recommended-nologin"),
@@ -181,7 +189,8 @@ class ILLUST(_Section):
                 },
             )
         ).json()
-        return RecommendedResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return RecommendedResult.parse_obj(data)
 
     async def new_illusts(
         self,
@@ -192,7 +201,7 @@ class ILLUST(_Section):
         ] = SearchFilter.ios,
         max_illust_id: Optional[int] = None,
     ) -> IllustNewResult:
-        data = await (
+        data = (
             await self._client.get(
                 V1_API / "illust/new",
                 params={
@@ -202,13 +211,15 @@ class ILLUST(_Section):
                 },
             )
         ).json()
-        return IllustNewResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return IllustNewResult.parse_obj(data)
 
     async def ugoira_metadata(self, id: int) -> UgoiraMetadataResult:
-        data = await (
+        data = (
             await self._client.get(V1_API / "ugoira/metadata", params={"illust_id": id})
         ).json()
-        return UgoiraMetadataResult.parse_obj(data)
+        with set_pixiv_client(self._client):
+            return UgoiraMetadataResult.parse_obj(data)
 
     async def download(
         self,
@@ -221,7 +232,7 @@ class ILLUST(_Section):
         output: Optional[Union[str, Path, BytesIO]] = None,
     ) -> List[bytes]:
         artwork = (await self.detail(id, filter=filter)).illust
-        if artwork.type == ArtWorkType.ugoira:
+        if artwork.type == IllustType.ugoira:
             raise ArtWorkTypeError(
                 "If you want to download a moving image, "
                 'please use this method: "download_ugoira"'

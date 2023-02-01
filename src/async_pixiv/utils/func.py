@@ -8,7 +8,7 @@ from yarl import URL
 
 from async_pixiv.error import ApiError, RateLimit
 
-__all__ = ['proxies_from_env', 'raise_for_result']
+__all__ = ["proxies_from_env", "raise_for_result"]
 
 T_Wrapped = TypeVar("T_Wrapped", bound=Callable)
 
@@ -16,6 +16,7 @@ T_Wrapped = TypeVar("T_Wrapped", bound=Callable)
 # noinspection PyProtectedMember
 def proxies_from_env() -> List[URL]:
     from urllib.request import getproxies
+
     return [
         URL(v)
         for k, v in getproxies().items()
@@ -24,9 +25,10 @@ def proxies_from_env() -> List[URL]:
 
 
 def raise_for_result(data: dict) -> None:
-    if data.get('error') is not None:
-        error = data['error']
-        if error['reason'] == 'Rate Limit':
-            raise RateLimit(data)
-        else:
-            raise ApiError(data)
+    if data.get("error") is not None:
+        error = data["error"]
+        if error:
+            if error["reason"] == "Rate Limit":
+                raise RateLimit(data)
+            else:
+                raise ApiError(data)

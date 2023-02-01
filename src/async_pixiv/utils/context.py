@@ -1,6 +1,22 @@
 from contextlib import contextmanager
+from contextvars import ContextVar
 
-__all__ = ("no_warning",)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from async_pixiv.client import PixivClient
+
+__all__ = ("no_warning", "do_nothing", "PixivClientContext", "set_pixiv_client")
+
+PixivClientContext: ContextVar["PixivClient"] = ContextVar("PixivClientContext")
+
+
+@contextmanager
+def do_nothing() -> None:
+    try:
+        yield
+    finally:
+        ...
 
 
 @contextmanager
@@ -17,3 +33,12 @@ def no_warning() -> None:
         for f in filters:
             # noinspection PyUnresolvedReferences
             warnings.filters.append(f)
+
+
+@contextmanager
+def set_pixiv_client(client: "PixivClient") -> "PixivClient":
+    token = PixivClientContext.set(client)
+    try:
+        yield client
+    finally:
+        PixivClientContext.reset(token)
