@@ -57,6 +57,8 @@ class NOVEL(_Section):
             Union[Literal["for_android", "for_ios"], SearchFilter]
         ] = SearchFilter.ios,
         offset: Optional[int] = None,
+        min_bookmarks: Optional[int] = None,
+        max_bookmarks: Optional[int] = None,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
         merge_plain_keyword_results: bool = True,
@@ -74,6 +76,8 @@ class NOVEL(_Section):
             duration=duration,
             filter=filter,
             offset=offset,
+            bookmark_num_min=min_bookmarks,
+            bookmark_num_max=max_bookmarks,
             start_date=start_date,
             end_date=end_date,
             merge_plain_keyword_results=merge_plain_keyword_results,
