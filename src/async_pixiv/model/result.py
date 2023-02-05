@@ -33,6 +33,7 @@ from async_pixiv.model.user import (
     UserProfilePublicity,
     UserWorkSpace,
 )
+from async_pixiv.utils.context import set_pixiv_client
 
 __all__ = [
     "UserPreview",
@@ -69,7 +70,8 @@ class PageResult(ABC, PixivModel, Generic[T]):
     async def next(self) -> Optional[Self]:
         if getattr(self, "next_url", None):
             data = (await self._pixiv_client.get(self.next_url)).json()
-            return self.__class__.parse_obj(data)
+            with set_pixiv_client(self._pixiv_client):
+                return self.__class__.parse_obj(data)
         else:
             return None
 
