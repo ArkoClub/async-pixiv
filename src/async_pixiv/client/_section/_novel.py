@@ -82,6 +82,7 @@ class NOVEL(_Section):
             end_date=end_date,
             merge_plain_keyword_results=merge_plain_keyword_results,
             include_translated_tag_results=include_translated_tag_results,
+            **kwargs,
         )
         with set_pixiv_client(self._client):
             return NovelSearchResult.parse_obj(data)

@@ -207,9 +207,13 @@ class PixivClient(Net):
                 "Authorization": self.access_token
                 if self.access_token is None
                 else f"Bearer {self.access_token}",
-                **self._request_headers,
             }
         )
+
+        for key, value in self._request_headers.items():
+            if key not in headers:
+                headers[key] = value
+
         return await super().request(
             method,
             str(url),

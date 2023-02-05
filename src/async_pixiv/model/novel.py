@@ -35,12 +35,14 @@ if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
     from async_pixiv.model.result import (
         NovelContentResult,
+        NovelDetailResult,
         NovelSeriesResult,
     )
 
 __all__ = ["Novel", "NovelMaker", "NovelSeries"]
 
 
+# noinspection PyProtectedMember
 class Novel(PixivModel):
     id: int
     title: str
@@ -68,6 +70,7 @@ class Novel(PixivModel):
 
     _check = null_dict_validator("series")
     _is_r18: Optional[bool] = PrivateAttr(None)
+    _lang: Optional[str] = PrivateAttr(None)
 
     @property
     def link(self) -> URL:
@@ -93,6 +96,35 @@ class Novel(PixivModel):
                 )
 
         return self._is_r18
+
+    async def get_lang(self) -> str:
+        if self._lang is None:
+            try:
+                client = self._pixiv_client
+                response = await client.get(
+                    self.link,
+                    follow_redirects=True,
+                    headers={
+                        "user-agent": (
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                            "AppleWebKit/537.36 (KHTML, like Gecko) "
+                            "Chrome/108.0.0.0 Safari/537.36"
+                        ),
+                    },
+                )
+                response.raise_for_status()
+                html = response.text
+                self._lang = re.findall(r"\"language\":\"(.*?)\",", html)[0]
+            except HTTPError:
+                pass
+        return self._lang
+
+    async def detail(self, *, for_ios: bool = True) -> "NovelDetailResult":
+        from async_pixiv.client._section._base import SearchFilter
+
+        return await self._pixiv_client.NOVEL.detail(
+            self.id, filter=SearchFilter.ios if for_ios else SearchFilter.android
+        )
 
     async def content(
         self, client: Optional["PixivClient"] = None
