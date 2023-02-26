@@ -21,7 +21,7 @@ from httpx._transports.default import (
 # noinspection PyProtectedMember
 from httpx._utils import guess_json_utf
 
-from async_pixiv.utils.func import raise_for_result as _raise_for_result
+from async_pixiv.error import ApiError, NotExist, RateLimit
 
 try:
     import ujson as jsonlib
@@ -30,9 +30,36 @@ except ImportError:
 
 __all__ = ("AsyncHTTPTransport", "HTTPTransport", "Response")
 
+STATUS_ERROR_MAP = {
+    404: NotExist,
+}
+RESULT_ERROR_MAP = {
+    "Rate Limit": RateLimit,
+}
+
 
 class Response(DefaultResponse):
-    def json(self, raise_for_result: bool = True, **kwargs: Any) -> Any:
+    def raise_for_status(self) -> None:
+        if self.status_code != 200:
+            if (error := STATUS_ERROR_MAP.get(self.status_code)) is not None:
+                raise error(self)
+            else:
+                super().raise_for_status()
+
+    # noinspection PyMethodMayBeStatic
+    def raise_for_result(self, result: dict) -> None:
+        if (error := result.get("error")) is not None:
+            raise RESULT_ERROR_MAP.get(error["reason"], ApiError)(error)
+
+    def json(
+        self,
+        raise_for_result: bool = True,
+        raise_for_status: bool = True,
+        **kwargs: Any,
+    ) -> Any:
+        if raise_for_status:
+            self.raise_for_status()
+
         result = None
         if self.charset_encoding is None and self.content and len(self.content) > 3:
             encoding = guess_json_utf(self.content)
@@ -42,7 +69,7 @@ class Response(DefaultResponse):
         result = jsonlib.loads(self.text, **kwargs) if result is None else result
 
         if isinstance(result, dict) and raise_for_result:
-            _raise_for_result(result)
+            self.raise_for_result(result)
 
         return result
 
