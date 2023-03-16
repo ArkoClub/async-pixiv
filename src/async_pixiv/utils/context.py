@@ -1,18 +1,31 @@
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
 
-__all__ = ("no_warning", "do_nothing", "PixivClientContext", "set_pixiv_client")
+__all__ = (
+    "no_warning",
+    "do_nothing",
+    "async_do_nothing",
+    "PixivClientContext",
+    "set_pixiv_client",
+)
 
 PixivClientContext: ContextVar["PixivClient"] = ContextVar("PixivClientContext")
 
 
 @contextmanager
 def do_nothing() -> None:
+    try:
+        yield
+    finally:
+        ...
+
+
+@asynccontextmanager
+def async_do_nothing() -> None:
     try:
         yield
     finally:

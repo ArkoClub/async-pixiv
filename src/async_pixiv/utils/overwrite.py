@@ -48,7 +48,7 @@ class Response(DefaultResponse):
 
     # noinspection PyMethodMayBeStatic
     def raise_for_result(self, result: dict) -> None:
-        if (error := result.get("error")) is not None:
+        if (error := result.get("error")) is not None and error:
             raise RESULT_ERROR_MAP.get(error["reason"], ApiError)(error)
 
     def json(

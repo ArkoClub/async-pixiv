@@ -33,6 +33,7 @@ from httpx._types import (
 from httpx._utils import get_environment_proxies
 from yarl import URL
 
+from async_pixiv.utils.context import async_do_nothing
 from async_pixiv.utils.overwrite import AsyncHTTPTransport, Response
 
 try:
@@ -63,7 +64,7 @@ class Net:
     def __init__(
         self,
         *,
-        rate_limiter: Optional[AsyncLimiter] = None,
+        rate_limiter: Optional[AsyncLimiter] = AsyncLimiter(100),
         proxies: Optional[ProxiesTypes] = None,
         retry: Optional[int] = 5,
         retry_sleep: float = 1,
@@ -129,15 +130,10 @@ class Net:
         times = max(1, self._retry)
         for n in range(times):
             try:
-                if self._rate_limiter is not None:
+                async with (self._rate_limiter or async_do_nothing()):
                     return await self._client.send(
                         request, auth=auth, follow_redirects=follow_redirects
                     )
-                else:
-                    async with self._rate_limiter:
-                        return await self._client.send(
-                            request, auth=auth, follow_redirects=follow_redirects
-                        )
             except Exception as e:
                 error = e
                 logger.warning(
