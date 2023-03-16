@@ -69,6 +69,7 @@ class ILLUST(_Section):
                     "within_last_day",
                     "within_last_week",
                     "within_last_month",
+                    "within_last_year",
                 ],
                 SearchDuration,
             ]

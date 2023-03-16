@@ -27,6 +27,7 @@ class SearchDuration(Enum):
     day = "within_last_day"
     week = "within_last_week"
     month = "within_last_month"
+    year = "within_last_year"
 
 
 class SearchFilter(Enum):
