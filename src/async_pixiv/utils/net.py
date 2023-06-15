@@ -4,12 +4,16 @@ from logging import getLogger
 from typing import Any, AsyncIterator, Dict, Optional, Union
 
 from aiolimiter import AsyncLimiter
+
 # noinspection PyProtectedMember
 from httpx import AsyncClient, URL
+
 # noinspection PyProtectedMember
 from httpx._client import USE_CLIENT_DEFAULT, UseClientDefault
+
 # noinspection PyProtectedMember
 from httpx._config import Proxy
+
 # noinspection PyProtectedMember
 from httpx._types import (
     AuthTypes,
@@ -24,12 +28,13 @@ from httpx._types import (
     TimeoutTypes,
     URLTypes,
 )
+
 # noinspection PyProtectedMember
 from httpx._utils import get_environment_proxies
 from yarl import URL
 
 from async_pixiv.utils.context import async_do_nothing
-from async_pixiv.utils.dns import AsyncHTTPTransportWithDNSResolver
+from async_pixiv.utils.bypass import BypassAsyncHTTPTransport
 from async_pixiv.utils.overwrite import AsyncHTTPTransport, Response
 
 try:
@@ -64,7 +69,7 @@ class Net:
         proxies: Optional[ProxiesTypes] = None,
         retry: Optional[int] = 5,
         retry_sleep: float = 1,
-        use_dns_resolver: bool = False,
+        bypass: bool = False,
         transport_kwargs: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
@@ -89,13 +94,12 @@ class Net:
             del kwargs[i]
         self._retry = retry
         self._retry_sleep = max(retry_sleep, 0)
-        if use_dns_resolver:
+        if bypass:
             self._client = AsyncClient(
                 mounts={
-                    k: AsyncHTTPTransportWithDNSResolver(proxy=v)
-                    for k, v in proxy_map.items()
+                    k: BypassAsyncHTTPTransport(proxy=v) for k, v in proxy_map.items()
                 },
-                transport=AsyncHTTPTransportWithDNSResolver(),
+                transport=BypassAsyncHTTPTransport(),
                 **kwargs,
             )
         else:

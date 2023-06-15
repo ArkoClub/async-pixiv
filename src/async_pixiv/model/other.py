@@ -68,6 +68,9 @@ class Tag(PixivModel):
             added_by_uploaded_user=added_by_uploaded_user,
         )
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class AIType(IntEnum):
     NONE = 0

@@ -21,10 +21,7 @@ except ImportError:
 if TYPE_CHECKING:
     from types import TracebackType
 
-__all__ = (
-    "DNSResolver",
-    "AsyncHTTPTransportWithDNSResolver",
-)
+__all__ = ("DNSResolver", "BypassAsyncHTTPTransport")
 
 _DEFAULT_TIMEOUT = 5
 _DEFAULT_DNS_QUERY_URLS = (
@@ -38,7 +35,7 @@ _DEFAULT_DNS_QUERY_URLS = (
 
 # noinspection SpellCheckingInspection
 class DNSResolver:
-    """DNS resolver for AsyncHTTPTransportWithDNSResolver."""
+    """DNS resolver for BypassAsyncHTTPTransport."""
 
     _lock: Lock = Lock()
     _client: Optional[AsyncClient] = None
@@ -125,8 +122,8 @@ class DNSResolver:
 
 
 # noinspection SpellCheckingInspection
-class AsyncHTTPTransportWithDNSResolver(AsyncHTTPTransport):
-    """重写 AsyncHTTPTransportWithDNSResolver 的 handle_async_request 方法，以便在请求前解析域名。
+class BypassAsyncHTTPTransport(AsyncHTTPTransport):
+    """重写 AsyncHTTPTransport 的 handle_async_request 方法，以便在请求前解析域名。
 
     灵感来源于:
 
