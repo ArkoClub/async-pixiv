@@ -4,16 +4,12 @@ from logging import getLogger
 from typing import Any, AsyncIterator, Dict, Optional, Union
 
 from aiolimiter import AsyncLimiter
-
 # noinspection PyProtectedMember
 from httpx import AsyncClient, URL
-
 # noinspection PyProtectedMember
 from httpx._client import USE_CLIENT_DEFAULT, UseClientDefault
-
 # noinspection PyProtectedMember
 from httpx._config import Proxy
-
 # noinspection PyProtectedMember
 from httpx._types import (
     AuthTypes,
@@ -28,7 +24,6 @@ from httpx._types import (
     TimeoutTypes,
     URLTypes,
 )
-
 # noinspection PyProtectedMember
 from httpx._utils import get_environment_proxies
 from yarl import URL
@@ -153,7 +148,11 @@ class Net:
                     )
             except Exception as e:
                 error = e
-                logger.warning(f"Request Error: {e}. " f"Will retry in {self._retry_sleep}s. ({n + 1}th retry)")await asyncio.sleep(self._retry_sleep)
+                logger.warning(
+                    f"Request Error: {e}. "
+                    f"Will retry in {self._retry_sleep}s. ({n + 1}th retry)"
+                )
+                await asyncio.sleep(self._retry_sleep)
         if error is not None:
             raise error
 

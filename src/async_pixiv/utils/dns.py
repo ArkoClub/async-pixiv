@@ -2,7 +2,7 @@
 import logging
 import ssl
 from threading import Lock
-from typing import Optional, Tuple, Type, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Tuple, Type
 
 from httpx import (
     AsyncClient,
