@@ -88,6 +88,10 @@ class PixivClient(Net):
         else:
             raise ValueError("请先实列化一个 PixivClient ")
 
+    @classmethod
+    def get_clients(cls) -> List["PixivClient"]:
+        return cls._instances
+
     _lock: ThreadLock = ThreadLock()
 
     class Config(NamedTuple):

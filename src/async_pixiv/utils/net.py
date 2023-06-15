@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from logging import getLogger
-from typing import Any, AsyncIterator, Optional, Union
+from typing import Any, AsyncIterator, Dict, Optional, Union
 
 from aiolimiter import AsyncLimiter
 
@@ -34,6 +34,7 @@ from httpx._utils import get_environment_proxies
 from yarl import URL
 
 from async_pixiv.utils.context import async_do_nothing
+from async_pixiv.utils.dns import AsyncHTTPTransportWithDNSResolver
 from async_pixiv.utils.overwrite import AsyncHTTPTransport, Response
 
 try:
@@ -68,8 +69,11 @@ class Net:
         proxies: Optional[ProxiesTypes] = None,
         retry: Optional[int] = 5,
         retry_sleep: float = 1,
+        use_dns_resolver: bool = False,
+        transport_kwargs: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
+        transport_kwargs = transport_kwargs or {}
         self._rate_limiter = rate_limiter
         if proxies is None:
             proxy_map = {
@@ -90,11 +94,24 @@ class Net:
             del kwargs[i]
         self._retry = retry
         self._retry_sleep = max(retry_sleep, 0)
-        self._client = AsyncClient(
-            mounts={k: AsyncHTTPTransport(proxy=v) for k, v in proxy_map.items()},
-            transport=AsyncHTTPTransport(),
-            **kwargs,
-        )
+        if use_dns_resolver:
+            self._client = AsyncClient(
+                mounts={
+                    k: AsyncHTTPTransportWithDNSResolver(proxy=v)
+                    for k, v in proxy_map.items()
+                },
+                transport=AsyncHTTPTransportWithDNSResolver(),
+                **kwargs,
+            )
+        else:
+            self._client = AsyncClient(
+                mounts={
+                    k: AsyncHTTPTransport(proxy=v, **transport_kwargs)
+                    for k, v in proxy_map.items()
+                },
+                transport=AsyncHTTPTransport(**transport_kwargs),
+                **kwargs,
+            )
 
     async def request(
         self,
@@ -136,10 +153,7 @@ class Net:
                     )
             except Exception as e:
                 error = e
-                logger.warning(
-                    f"Request Error: {e}. Will retry in {self._retry_sleep}s. ({n + 1}th retry)"
-                )
-                await asyncio.sleep(self._retry_sleep)
+                logger.warning(f"Request Error: {e}. " f"Will retry in {self._retry_sleep}s. ({n + 1}th retry)")await asyncio.sleep(self._retry_sleep)
         if error is not None:
             raise error
 
