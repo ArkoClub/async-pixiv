@@ -1,14 +1,7 @@
 from datetime import date
 from io import BytesIO
 from pathlib import Path
-from typing import (
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Union,
-)
-from zipfile import ZipFile
+from typing import List, Optional, Union
 
 from typing_extensions import Literal
 
@@ -34,6 +27,7 @@ from async_pixiv.model.result import (
     UgoiraMetadataResult,
 )
 from async_pixiv.utils.context import set_pixiv_client
+from async_pixiv.utils.typedefs import UGOIRA_RESULT_TYPE
 
 __all__ = ("ILLUST",)
 
@@ -263,35 +257,6 @@ class ILLUST(_Section):
             return result
 
     async def download_ugoira(
-        self,
-        id: int,
-        *,
-        type: Literal["zip", "jpg", "all", "iter"] = "zip",
-    ) -> Optional[
-        Union[
-            ZipFile,
-            List[bytes],
-            Dict[str, Union[ZipFile, List[bytes]]],
-            Iterator[bytes],
-        ]
-    ]:
-        metadata = (await self.ugoira_metadata(id)).metadata
-        zip_url = metadata.zip_url
-        data = await self._client.download(
-            zip_url.original or zip_url.large or zip_url.medium,
-        )
-        if data is None:
-            return None
-        zip_file = ZipFile(BytesIO(data))
-        if type == "zip":
-            return zip_file
-        frames = []
-        for frame_info in metadata.frames:
-            with zip_file.open(frame_info.file) as f:
-                frames.append(f.read())
-        if type == "jpg":
-            return frames
-        elif type == "iter":
-            return iter(frames)
-        else:
-            return {"zip": zip_file, "frames": frames}
+        self, id: int, *, type: UGOIRA_RESULT_TYPE = "zip"
+    ) -> Union[bytes, List[bytes], None]:
+        return await (await self.detail(id)).illust.download_ugoira(type=type)

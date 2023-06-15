@@ -1,12 +1,12 @@
 import asyncio
 import signal
-import sys
 from codecs import StreamReader
 from collections import namedtuple
 from typing import Any, Coroutine, Dict, List, Optional, TYPE_CHECKING
 
 from pyee import EventEmitter
 
+from async_pixiv.utils.const import IS_WINDOWS
 from async_pixiv.utils.ffmpeg.typing import Option
 from async_pixiv.utils.ffmpeg.utils import build_options, parse_progress, read_lines
 
@@ -14,11 +14,9 @@ if TYPE_CHECKING:
     # noinspection PyProtectedMember
     from asyncio.subprocess import Process
 
-_windows = sys.platform == "win32"
-
 
 def _create_subprocess(*args, **kwargs) -> Coroutine[Any, Any, "Process"]:
-    if _windows:
+    if IS_WINDOWS:
         # https://docs.python.org/3/library/asyncio-subprocess.html#asyncio.asyncio.subprocess.Process.send_signal
         from subprocess import CREATE_NEW_PROCESS_GROUP
 
@@ -105,7 +103,7 @@ class FFmpeg(EventEmitter):
             raise FFmpegError("FFmpeg is not executed")
 
         sigterm = signal.SIGTERM
-        if _windows:  # On Windows, SIGTERM -> TerminateProcess()
+        if IS_WINDOWS:  # On Windows, SIGTERM -> TerminateProcess()
             # https://github.com/FFmpeg/FFmpeg/blob/master/fftools/ffmpeg.c#L356
             sigterm = signal.CTRL_BREAK_EVENT
 

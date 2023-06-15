@@ -7,7 +7,6 @@ from typing import Any, List, Optional, TYPE_CHECKING, Union, overload
 from zipfile import ZipFile
 
 from aiofiles import open as async_open
-
 # noinspection PyUnresolvedReferences
 from aiofiles.tempfile import TemporaryDirectory
 from pydantic import (
@@ -32,6 +31,7 @@ from async_pixiv.model.other import (
 )
 from async_pixiv.model.user import User
 from async_pixiv.utils.ffmpeg import FFmpeg
+from async_pixiv.utils.typedefs import UGOIRA_RESULT_TYPE
 
 try:
     import regex as re
@@ -52,8 +52,6 @@ __all__ = [
     "Comment",
     "UgoiraMetadata",
 ]
-
-UGOIRA_RESULT_TYPE = Literal["zip", "jpg", "iter", "gif", "mp4"]
 
 session = Session()
 
@@ -305,7 +303,8 @@ class Illust(PixivModel):
                     .option("safe", 0)
                     .option(
                         "filter_complex",
-                        "crop='iw-mod(iw,2)':'ih-mod(ih,2)'[main];"
+                        "colormatrix=bt470bg:bt709[0];"
+                        "[0]crop='iw-mod(iw,2)':'ih-mod(ih,2)'[main];"
                         "[main]split[v1][v2];"
                         "[v1]palettegen[pal];"
                         "[v2][pal]paletteuse=dither=sierra2_4a",
@@ -329,7 +328,8 @@ class Illust(PixivModel):
                     .option("i", str(connect_config_file_path.resolve()))
                     .option(
                         "filter_complex",
-                        "split[v1][v2];"
+                        "colormatrix=bt470bg:bt709[main];"
+                        "[main]split[v1][v2];"
                         "[v1]palettegen[pal];"
                         "[v2][pal]paletteuse=dither=sierra2_4a",
                     )

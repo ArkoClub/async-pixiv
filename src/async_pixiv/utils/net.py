@@ -42,11 +42,11 @@ except ImportError:
     import re
 
 try:
-    from uvloop import EventLoopPolicy
+    import uvloop
 
-    asyncio.set_event_loop_policy(EventLoopPolicy())
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
-    EventLoopPolicy = None
+    uvloop = None
 
 __all__ = ["Net"]
 
