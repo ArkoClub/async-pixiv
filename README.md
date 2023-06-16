@@ -41,16 +41,16 @@ pip install --upgrade async-pixiv[full]
 使用 `poetry`
 
 ```bash
-poetry add --upgrade async-pixiv
+poetry add async-pixiv
 
 # 安装额外依赖（用于提升数据解析速度）
-poetry add --upgrade async-pixiv[extra]
+poetry add async-pixiv[extra]
 
 # 安装 playwright，使之可以使用账号密码登录 
-poetry add --upgrade async-pixiv[playwright]
+poetry add async-pixiv[playwright]
 
 # 安装全部额外依赖
-poetry add --upgrade async-pixiv[full]
+poetry add async-pixiv[full]
 ```
 
 ## 使用
