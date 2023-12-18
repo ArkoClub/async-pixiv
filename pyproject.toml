@@ -6,15 +6,15 @@ authors = [
     { name = "Arko", email = "arko.space.cc@gmail.com" },
 ]
 dependencies = [
-    "pydantic[email]<2.0.0,>=1.10.2",
-    "aiohttp-socks<1.0.0,>=0.7.1",
-    "arko-wrapper<1.0.0,>=0.2.4",
-    "aiofiles<1.0.0,>=0.8.0",
-    "httpx<0.24.0,>=0.23.3",
-    "aiolimiter<2.0.0,>=1.0.0",
-    "pyee<10.0.0,>=9.0.4",
+    "pydantic[email]>=2.5.2",
+    "arko-wrapper>=0.2.8",
+    "aiofiles>=23.2.1",
+    "httpx>=0.25.2",
+    "aiohttp-socks>=0.8.4",
+    "pyee>=9.0.4",
+    "msgspec>=0.18.5",
 ]
-requires-python = ">=3.8,<4.0"
+requires-python = ">=3.10,<4.0"
 readme = "README.md"
 license = { text = "MIT" }
 maintainers = [
@@ -24,8 +24,6 @@ keywords = ["pixiv", "async", "pixiv-api"]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -40,24 +38,24 @@ repository = "https://github.com/ArkoClub/async-pixiv"
 [tool.pdm]
 package-type = "library"
 
-[tool.pdm.build]
-includes = ["src/async_pixiv", "LICENSE"]
-
-[project.optional-dependencies]
-regex = ["regex<2023.0.0,>=2022.9.13"]
-ujson = ["ujson<6.0.0,>=5.5.0"]
-extra = ["uvloop<1.0.0,>=0.16.0; sys_platform != \"win32\""]
-playwright = ["playwright<2.0.0,>=1.26.1"]
-
-[tool.pdm.dev-dependencies]
-dev = [
-    "pytest<4.0,>=3.0",
-]
-
 [[tool.pdm.source]]
 name = "official-pypi"
 url = "https://pypi.python.org/simple"
 verify_ssl = true
+
+[tool.pdm.build]
+includes = ["src/async_pixiv", "LICENSE"]
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest<4.0,>=3.0",
+    "black>=23.12.0",
+]
+
+[project.optional-dependencies]
+regex = ["regex<2024.0.0,>=2022.9.13"]
+extra = ["uvloop<1.0.0,>=0.16.0; sys_platform != \"win32\""]
+playwright = ["playwright<2.0.0,>=1.26.1"]
 
 [build-system]
 requires = ["pdm-backend"]
