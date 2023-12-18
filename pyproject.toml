@@ -1,15 +1,26 @@
-[tool.poetry]
+[project]
 name = "async-pixiv"
 version = "0.3.7"
-description = "Async Pixiv API"
-license = "MIT"
-authors = ["Arko <arko.space.cc@gmail.com>"]
+description = "Async Pixiv API for Python"
+authors = [
+    { name = "Arko", email = "arko.space.cc@gmail.com" },
+]
+dependencies = [
+    "pydantic[email]<2.0.0,>=1.10.2",
+    "aiohttp-socks<1.0.0,>=0.7.1",
+    "arko-wrapper<1.0.0,>=0.2.4",
+    "aiofiles<1.0.0,>=0.8.0",
+    "httpx<0.24.0,>=0.23.3",
+    "aiolimiter<2.0.0,>=1.0.0",
+    "pyee<10.0.0,>=9.0.4",
+]
+requires-python = ">=3.8,<4.0"
 readme = "README.md"
-homepage = "https://github.com/ArkoClub/async-pixiv"
-repository = "https://github.com/ArkoClub/async-pixiv"
+license = { text = "MIT" }
+maintainers = [
+    { name = "Karako", email = "karakohear@gmail.com" },
+]
 keywords = ["pixiv", "async", "pixiv-api"]
-include = ["LICENSE"]
-maintainers = ["Karako <karakohear@gmail.com>"]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3 :: Only",
@@ -17,43 +28,37 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-packages = [
-    { include = "async_pixiv", from = "src" },
+
+[project.urls]
+homepage = "https://github.com/ArkoClub/async-pixiv"
+repository = "https://github.com/ArkoClub/async-pixiv"
+
+[tool.pdm]
+package-type = "library"
+
+[tool.pdm.build]
+includes = ["src/async_pixiv", "LICENSE"]
+
+[project.optional-dependencies]
+regex = ["regex<2023.0.0,>=2022.9.13"]
+ujson = ["ujson<6.0.0,>=5.5.0"]
+extra = ["uvloop<1.0.0,>=0.16.0; sys_platform != \"win32\""]
+playwright = ["playwright<2.0.0,>=1.26.1"]
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest<4.0,>=3.0",
 ]
 
-
-[tool.poetry.dependencies]
-python = "^3.8"
-pydantic = { extras = ["email"], version = "^1.10.2" }
-aiohttp-socks = "^0.7.1"
-arko-wrapper = "^0.2.4"
-regex = { version = "^2022.9.13", optional = true }
-ujson = { version = "^5.5.0", optional = true }
-uvloop = { version = "^0.16.0", optional = true, markers = "sys_platform!='win32'" }
-playwright = { version = "^1.26.1", optional = true }
-aiofiles = "^0.8.0"
-httpx = "^0.23.3"
-aiolimiter = "^1.0.0"
-pyee = "^9.0.4"
-
-[tool.poetry.dev-dependencies]
-pytest = "^3.0"
-
-[tool.poetry.extras]
-regex = ["regex"]
-ujson = ["ujson"]
-playwright = ["playwright"]
-extra = ["regex", "ujson", "uvloop"]
-full = ["regex", "ujson", "uvloop", "playwright"]
-
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[[tool.poetry.source]]
+[[tool.pdm.source]]
 name = "official-pypi"
 url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"

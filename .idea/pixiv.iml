@@ -12,4 +12,7 @@
     <option name="myDocStringFormat" value="Google" />
     <option name="renderExternalDocumentation" value="true" />
   </component>
+  <component name="SonarLintModuleSettings">
+    <option name="uniqueId" value="396a43ff-2232-46d6-a90f-ee0e30c0a191" />
+  </component>
 </module>
