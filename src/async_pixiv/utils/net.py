@@ -146,6 +146,7 @@ class Net:
         times = max(1, self._retry)
         for n in range(times):
             try:
+                # noinspection PyArgumentList
                 async with (self._rate_limiter or async_do_nothing()):
                     return await self._client.send(
                         request, auth=auth, follow_redirects=follow_redirects

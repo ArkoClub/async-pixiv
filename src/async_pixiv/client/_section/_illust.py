@@ -130,6 +130,7 @@ class ILLUST(_Section):
         offset: Optional[int] = None,
         seed_ids: Optional[Union[List[int], int]] = None,
     ) -> IllustRelatedResult:
+        # noinspection PyTypeChecker
         data = (
             await self._client.get(
                 V2_API / "illust/related",

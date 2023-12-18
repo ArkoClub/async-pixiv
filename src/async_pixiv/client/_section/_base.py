@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from async_pixiv.client._client import PixivClient
 
 API_HOST = URL("https://app-api.pixiv.net")
+AJAX_HOST = URL("https://www.pixiv.net/ajax")
 V1_API = API_HOST / "v1"
 V2_API = API_HOST / "v2"
 
@@ -71,6 +72,7 @@ class _Section(ABC):
         offset: Optional[int] = None,
         **kwargs,
     ) -> Dict:
+        # noinspection PyTypeChecker
         response = await self._client.get(
             V1_API / f"search/{self._type}",
             params={

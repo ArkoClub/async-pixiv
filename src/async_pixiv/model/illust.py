@@ -19,6 +19,7 @@ from requests import HTTPError, Session
 from typing_extensions import Literal
 from yarl import URL
 
+from async_pixiv.client._section._base import AJAX_HOST
 from async_pixiv.error import ArtWorkTypeError
 from async_pixiv.model._base import (
     PixivModel,
@@ -150,18 +151,18 @@ class Illust(PixivModel):
         if self._is_r18g is None:
             try:
                 client = self._pixiv_client
-                response = await client.get(self.link, follow_redirects=True)
+                response = await client.get(
+                    AJAX_HOST / f'illust/{self.id}',
+                    follow_redirects=True,
+                )
                 response.raise_for_status()
-                html = response.text
-                title = re.findall(
-                    r"<meta property=\"twitter:title\" content=\"(.*?)\">", html
-                )[0]
-                self._is_r18g = title.startswith("[R-18G]")
+                json_data = response.json(raise_for_status=True)['body']
+                self._is_r18g = 'R-18' in [i['tag'] for i in json_data['tags']['tags']]
             except HTTPError:
                 self._is_r18g = any(
                     map(
                         lambda x: (
-                            "R-18G" in x.name.upper() or "R18G" in x.name.upper()
+                                "R-18G" in x.name.upper() or "R18G" in x.name.upper()
                         ),
                         self.tags,
                     )
