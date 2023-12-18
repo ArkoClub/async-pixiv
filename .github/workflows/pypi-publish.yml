@@ -1,0 +1,25 @@
+name: Python package
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+jobs:
+  pypi-publish:
+    name: Upload release to PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup PDM
+        uses: pdm-project/setup-pdm@v3
+      - name: Install pdm-publish
+        run: pdm plugin add pdm-publish
+      - name: Publish package distributions to PyPI
+        run: pdm publish --password ${{ secrets.PYPI_API_TOKEN }}
