@@ -36,6 +36,10 @@ class _Section(ABC):
     def type(self) -> str:
         return self._type
 
+    @property
+    def client(self) -> "PixivClient":
+        return self._client
+
     def __init_subclass__(cls, **kwargs) -> None:
         cls._type = cls.__name__.lower()
 

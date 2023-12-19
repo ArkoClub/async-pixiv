@@ -1,6 +1,6 @@
 [project]
 name = "async-pixiv"
-version = "0.3.8"
+version = "1.0.0"
 description = "Async Pixiv API for Python"
 authors = [
     { name = "Arko", email = "arko.space.cc@gmail.com" },
@@ -13,6 +13,9 @@ dependencies = [
     "aiohttp-socks>=0.8.4",
     "pyee>=9.0.4",
     "msgspec>=0.18.5",
+    "aiolimiter>=1.1.0",
+    "requests>=2.31.0",
+    "orjson>=3.9.10",
 ]
 requires-python = ">=3.10,<4.0"
 readme = "README.md"

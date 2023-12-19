@@ -107,7 +107,7 @@ class ILLUST(_Section):
     ) -> IllustDetailResult:
         data = await super(ILLUST, self).detail(id, filter=filter)
         with set_pixiv_client(self._client):
-            return IllustDetailResult.parse_obj(data)
+            return IllustDetailResult.model_validate(data)
 
     async def comments(
         self, id: int, *, offset: Optional[int] = None

@@ -1,9 +1,9 @@
-"""重写 telegram.request.HTTPXRequest 使其使用 ujson 库进行 json 序列化"""
-from typing import Any, AsyncIterable, Iterable
+from typing import Any, AsyncIterable, Iterable, Self
 
 import httpcore
 from httpx import (
     AsyncByteStream,
+    AsyncClient as DefaultAsyncClient,
     AsyncHTTPTransport as DefaultAsyncHTTPTransport,
     HTTPTransport as DefaultHTTPTransport,
     Request,
@@ -18,17 +18,14 @@ from httpx._transports.default import (
     map_httpcore_exceptions,
 )
 
-# noinspection PyProtectedMember
-from httpx._utils import guess_json_utf
-
 from async_pixiv.error import ApiError, NotExist, RateLimit
 
 try:
-    import ujson as jsonlib
+    from orjson import loads as json_loads
 except ImportError:
-    import json as jsonlib
+    from json import loads as json_loads
 
-__all__ = ("AsyncHTTPTransport", "HTTPTransport", "Response")
+__all__ = ("AsyncHTTPTransport", "HTTPTransport", "Response", "AsyncClient")
 
 STATUS_ERROR_MAP = {
     404: NotExist,
@@ -39,39 +36,27 @@ RESULT_ERROR_MAP = {
 
 
 class Response(DefaultResponse):
-    def raise_for_status(self) -> None:
+    _json_data: dict[str, Any] | None = None
+
+    def raise_for_status(self) -> Self:
         if self.status_code != 200:
             if (error := STATUS_ERROR_MAP.get(self.status_code)) is not None:
                 raise error(self)
             else:
                 super().raise_for_status()
+        return self
 
     # noinspection PyMethodMayBeStatic
-    def raise_for_result(self, result: dict) -> None:
-        if (error := result.get("error")) is not None and error:
-            raise RESULT_ERROR_MAP.get(error["reason"], ApiError)(error)
+    def raise_for_result(self) -> Self:
+        if (json_data := self.json()) is not None:
+            if (error := json_data.get("error")) is not None and error:
+                raise RESULT_ERROR_MAP.get(error["reason"], ApiError)(error)
+        return self
 
-    def json(
-        self,
-        raise_for_result: bool = True,
-        raise_for_status: bool = True,
-        **kwargs: Any,
-    ) -> Any:
-        if raise_for_status:
-            self.raise_for_status()
-
-        result = None
-        if self.charset_encoding is None and self.content and len(self.content) > 3:
-            encoding = guess_json_utf(self.content)
-            if encoding is not None:
-                result = jsonlib.loads(self.content.decode(encoding), **kwargs)
-
-        result = jsonlib.loads(self.text, **kwargs) if result is None else result
-
-        if isinstance(result, dict) and raise_for_result:
-            self.raise_for_result(result)
-
-        return result
+    def json(self, **kwargs: Any) -> dict[str, Any]:
+        if self._json_data is None:
+            self._json_data = json_loads(self.content, **kwargs)
+        return self._json_data
 
 
 # noinspection PyProtectedMember
@@ -131,4 +116,13 @@ class HTTPTransport(DefaultHTTPTransport):
             headers=resp.headers,
             stream=ResponseStream(resp.stream),
             extensions=resp.extensions,
+        )
+
+
+class AsyncClient(DefaultAsyncClient):
+    async def _send_handling_auth(
+        self, request, auth, follow_redirects, history
+    ) -> Response:
+        return await super()._send_handling_auth(
+            request, auth, follow_redirects, history
         )

@@ -6,7 +6,6 @@ from typing import (
 )
 
 from pydantic import (
-    Extra,
     Field,
     PrivateAttr,
 )
@@ -15,7 +14,6 @@ from yarl import URL
 
 from async_pixiv.model._base import (
     PixivModel,
-    PixivModelConfig,
     null_dict_validator,
 )
 from async_pixiv.model.other import (
@@ -155,11 +153,8 @@ class Novel(PixivModel):
         return hash(f"pixiv_novel_{self.id}")
 
 
-class NovelMaker(PixivModel):
+class NovelMaker(PixivModel, extra="allow"):
     page: int
-
-    class Config(PixivModelConfig):
-        extra = Extra.allow
 
 
 class NovelSeries(Series):

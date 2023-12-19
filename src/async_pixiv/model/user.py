@@ -1,13 +1,10 @@
-from typing import (
-    Optional,
-    TYPE_CHECKING,
-)
+from typing import Optional, TYPE_CHECKING
 
-from pydantic import HttpUrl
+from pydantic import EmailStr, Field, HttpUrl
 from yarl import URL
 
 from async_pixiv.model._base import PixivModel
-from async_pixiv.model.other import ImageUrl
+from async_pixiv.model.other import ContentRestriction, ImageUrl, ProfileImageUrl
 
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
@@ -19,22 +16,15 @@ if TYPE_CHECKING:
         UserNovelsResult,
     )
 
-__all__ = [
-    "User",
-    "UserProfile",
-    "UserProfilePublicity",
-    "UserWorkSpace",
-]
+__all__ = ["User", "UserProfile", "UserProfilePublicity", "UserWorkSpace", "Account"]
 
 
 # noinspection PyProtectedMember
-class User(PixivModel):
+class _User(PixivModel):
     id: int
     name: str
-    account: Optional[str]
-    profile_image_urls: ImageUrl
-    is_followed: Optional[bool]
-    comment: Optional[str]
+    account: str
+    mail_address: EmailStr
 
     @property
     def link(self) -> URL:
@@ -45,10 +35,7 @@ class User(PixivModel):
     ) -> "UserDetailResult":
         from async_pixiv.client._section._base import SearchFilter
 
-        if client is None:
-            from async_pixiv.client import PixivClient
-
-            client = PixivClient.get_client()
+        client = client or self._pixiv_client
 
         return await client.USER.detail(
             self.id, filter=SearchFilter.ios if for_ios else SearchFilter.android
@@ -63,10 +50,8 @@ class User(PixivModel):
     ) -> "UserIllustsResult":
         from async_pixiv.client._section._base import SearchFilter
 
-        if client is None:
-            from async_pixiv.client import PixivClient
+        client = client or self._pixiv_client
 
-            client = PixivClient.get_client()
         return await client.USER.illusts(
             self.id,
             offset=offset,
@@ -83,10 +68,8 @@ class User(PixivModel):
     ) -> "UserBookmarksIllustsResult":
         from async_pixiv.client._section._base import SearchFilter
 
-        if client is None:
-            from async_pixiv.client import PixivClient
+        client = client or self._pixiv_client
 
-            client = PixivClient.get_client()
         return await client.USER.bookmarks(
             self.id,
             tag=tag,
@@ -103,10 +86,8 @@ class User(PixivModel):
     ) -> "UserNovelsResult":
         from async_pixiv.client._section._base import SearchFilter
 
-        if client is None:
-            from async_pixiv.client import PixivClient
+        client = client or self._pixiv_client
 
-            client = PixivClient.get_client()
         return await client.USER.novels(
             self.id,
             offset=offset,
@@ -122,10 +103,8 @@ class User(PixivModel):
     ) -> "UserRelatedResult":
         from async_pixiv.client._section._base import SearchFilter
 
-        if client is None:
-            from async_pixiv.client import PixivClient
+        client = client or self._pixiv_client
 
-            client = PixivClient.get_client()
         return await client.USER.related(
             self.id,
             offset=offset,
@@ -183,3 +162,16 @@ class UserWorkSpace(PixivModel):
     chair: Optional[str]
     comment: Optional[str]
     workspace_image_url: Optional[HttpUrl]
+
+
+class User(_User):
+    comment: str
+    is_followed: bool
+    profile_image_urls: ImageUrl
+
+
+class Account(_User):
+    restrict: ContentRestriction = Field(alias="x_restrict")
+    profile_image_urls: ProfileImageUrl
+    is_mail_authorized: bool
+    require_policy_agreement: bool

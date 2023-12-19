@@ -1,6 +1,15 @@
 from enum import Enum as BaseEnum
 
-__all__ = ("Enum", "SearchTarget", "SearchShort", "SearchDuration", "SearchFilter")
+from typing import TypeVar, Union
+
+__all__ = (
+    "Enum",
+    "EnumType",
+    "SearchTarget",
+    "SearchShort",
+    "SearchDuration",
+    "SearchFilter",
+)
 
 
 class Enum(BaseEnum):
@@ -33,3 +42,6 @@ class SearchDuration(Enum):
 class SearchFilter(Enum):
     android = "for_android"
     ios = "for_ios"
+
+
+EnumType = TypeVar("EnumType", bound=Union[Enum, BaseEnum])

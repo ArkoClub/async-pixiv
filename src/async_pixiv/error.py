@@ -8,6 +8,9 @@ class PixivError(Exception):
     def __init_subclass__(cls, **kwargs) -> None:
         cls.__module__ = "async_pixiv.error"
 
+    def __eq__(self, other: Exception) -> bool:
+        return self == other
+
 
 class LoginError(PixivError):
     pass
@@ -32,10 +35,10 @@ class StatusError(PixivError):
 
 
 class ApiError(PixivError):
-    user_message: Optional[str] = None
-    message: Optional[str] = None
-    reason: Optional[str] = None
-    user_message_details: Optional[str] = None
+    user_message: str = ""
+    message: str = ""
+    reason: str = ""
+    user_message_details: str = ""
 
     def __init__(self, data: dict) -> None:
         self.user_message = data.get("user_message", self.user_message)

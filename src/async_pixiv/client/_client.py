@@ -5,11 +5,7 @@ from pathlib import Path
 from threading import Lock as ThreadLock
 from typing import (
     Any,
-    AsyncIterator,
     Callable,
-    ClassVar,
-    Dict,
-    List,
     NamedTuple,
     Optional,
     TYPE_CHECKING,
@@ -23,27 +19,9 @@ from aiofiles import open as async_open
 # noinspection PyUnresolvedReferences
 from aiofiles.tempfile import SpooledTemporaryFile
 from aiohttp.typedefs import StrOrURL
-from aiolimiter import AsyncLimiter
 from arkowrapper import ArkoWrapper
-from httpx import USE_CLIENT_DEFAULT
 
 # noinspection PyProtectedMember
-from httpx._client import UseClientDefault
-
-# noinspection PyProtectedMember
-from httpx._types import (
-    AuthTypes,
-    CookieTypes,
-    HeaderTypes,
-    ProxiesTypes,
-    QueryParamTypes,
-    RequestContent,
-    RequestData,
-    RequestExtensions,
-    RequestFiles,
-    TimeoutTypes,
-    URLTypes,
-)
 from typing_extensions import ParamSpec
 
 # noinspection PyProtectedMember
@@ -52,10 +30,10 @@ from async_pixiv.error import (
     LoginError,
     OauthError,
 )
-from async_pixiv.model.user import User
+from async_pixiv.model.user import Account
 from async_pixiv.utils.context import set_pixiv_client
 from async_pixiv.utils.net import Net
-from async_pixiv.utils.overwrite import Response
+from async_pixiv.utils.singleton import Singleton
 
 if TYPE_CHECKING:
     from async_pixiv.client import (
@@ -78,20 +56,7 @@ logger = logging.getLogger("async_pixiv.client")
 
 
 # noinspection PyPep8Naming
-class PixivClient(Net):
-    _instances: ClassVar[List["PixivClient"]] = []
-
-    @classmethod
-    def get_client(cls) -> "PixivClient":
-        if cls._instances:
-            return cls._instances[0]
-        else:
-            raise ValueError("请先实列化一个 PixivClient ")
-
-    @classmethod
-    def get_clients(cls) -> List["PixivClient"]:
-        return cls._instances
-
+class PixivClient(Net, metaclass=Singleton):
     _lock: ThreadLock = ThreadLock()
 
     class Config(NamedTuple):
@@ -101,12 +66,12 @@ class PixivClient(Net):
         accept_language: str
 
     _config: Config
-    _request_headers: Dict[str, Any]
+    _request_headers: dict[str, Any]
 
-    access_token: Optional[str] = None
-    refresh_token: Optional[str] = None
-    account: Optional[User] = None
-    _sections: Dict[str, SectionType] = {}
+    access_token: str | None = None
+    refresh_token: str | None = None
+    account: Account | None = None
+    _sections: dict[str, SectionType] = {}
 
     @property
     def USER(self) -> "USER":
@@ -148,140 +113,45 @@ class PixivClient(Net):
 
         return wrapper
 
-    def __init__(
-        self,
-        *,
-        max_rate: float = 100,
-        rate_time_period: float = 60,
-        timeout: float = 10,
-        proxies: Optional[ProxiesTypes] = None,
-        trust_env: bool = False,
-        retry: int = 5,
-        retry_sleep: float = 1,
-    ):
-        super().__init__(
-            rate_limiter=AsyncLimiter(max_rate, rate_time_period),
-            timeout=timeout,
-            proxies=proxies,
-            trust_env=trust_env,
-            retry=retry,
-            retry_sleep=retry_sleep,
-        )
+    @property
+    def accept_language(self) -> str:
+        return self._headers["Accept-Language"]
+
+    @accept_language.setter
+    def accept_language(self, accept_language: str) -> None:
+        self._headers.update({"Accept-Language": accept_language})
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         config_path = (Path(__file__) / "../config").resolve()
         with open(config_path, encoding="utf-8") as file:
             self._config = PixivClient.Config(
                 *ArkoWrapper(file.readlines()).map(lambda x: x.strip())
             )
-        self._request_headers = {
-            "App-OS": "ios",
-            "App-OS-Version": "12.2",
-            "App-Version": "7.6.2",
-            "user-agent": self._config.user_agent,
-            "Referer": "https://app-api.pixiv.net/",
-            "Accept-Language": "zh-CN,zh;q=0.9,zh-Hans;q=0.8,en;q=0.7,zh-Hant;"
-            "q=0.6,ja;q=0.5",
-        }
-        PixivClient._instances.append(self)
+        self._headers.update(
+            {
+                "App-OS": "ios",
+                "App-OS-Version": "12.2",
+                "App-Version": "7.6.2",
+                "user-agent": self._config.user_agent,
+                "Referer": "https://www.pixiv.net/",
+                "Accept-Language": self._config.accept_language,
+            }
+        )
+        self._update_headers()
 
-    def set_accept_language(self, language: str) -> None:
-        self._request_headers.update({"Accept-Language": language})
-
-    async def request(
-        self,
-        method: str,
-        url: URLTypes,
-        *,
-        content: Optional[RequestContent] = None,
-        data: Optional[RequestData] = None,
-        files: Optional[RequestFiles] = None,
-        json: Optional[Any] = None,
-        params: Optional[QueryParamTypes] = None,
-        headers: Optional[HeaderTypes] = None,
-        cookies: Optional[CookieTypes] = None,
-        auth: Union[AuthTypes, UseClientDefault, None] = USE_CLIENT_DEFAULT,
-        follow_redirects: Union[UseClientDefault, bool] = USE_CLIENT_DEFAULT,
-        timeout: Union[UseClientDefault, TimeoutTypes] = USE_CLIENT_DEFAULT,
-        extensions: Optional[RequestExtensions] = None,
-    ) -> Response:
-        headers = headers or {}
-        params = params or {}
-
-        headers.update(
+    def _update_headers(self) -> None:
+        self._headers.update(
             {
                 "Authorization": self.access_token
                 if self.access_token is None
                 else f"Bearer {self.access_token}",
             }
-        )
-
-        for key, value in self._request_headers.items():
-            if key not in headers:
-                headers[key] = value
-
-        return await super().request(
-            method,
-            str(url),
-            content=content,
-            data=data,
-            files=files,
-            json=json,
-            params={k: v for k, v in params.items() if v is not None},
-            headers={k: v for k, v in headers.items() if v is not None},
-            cookies=cookies,
-            auth=auth,
-            follow_redirects=follow_redirects,
-            timeout=timeout,
-            extensions=extensions,
-        )
-
-    def stream(
-        self,
-        method: str,
-        url: URLTypes,
-        *,
-        content: Optional[RequestContent] = None,
-        data: Optional[RequestData] = None,
-        files: Optional[RequestFiles] = None,
-        json: Optional[Any] = None,
-        params: Optional[QueryParamTypes] = None,
-        headers: Optional[HeaderTypes] = None,
-        cookies: Optional[CookieTypes] = None,
-        auth: Union[AuthTypes, UseClientDefault, None] = USE_CLIENT_DEFAULT,
-        follow_redirects: Union[UseClientDefault, bool] = USE_CLIENT_DEFAULT,
-        timeout: Union[UseClientDefault, TimeoutTypes] = USE_CLIENT_DEFAULT,
-        extensions: Optional[RequestExtensions] = None,
-    ) -> AsyncIterator[Response]:
-        headers = headers or {}
-        params = params or {}
-
-        headers.update(
-            {
-                "Authorization": self.access_token
-                if self.access_token is None
-                else f"Bearer {self.access_token}",
-                **self._request_headers,
-            }
-        )
-
-        return super().stream(
-            method,
-            str(url),
-            content=content,
-            data=data,
-            files=files,
-            json=json,
-            params={k: v for k, v in params.items() if v is not None},
-            headers={k: v for k, v in headers.items() if v is not None},
-            cookies=cookies,
-            auth=auth,
-            follow_redirects=follow_redirects,
-            timeout=timeout,
-            extensions=extensions,
         )
 
     async def login_with_pwd(
         self, username: str, password: str, proxy: Optional[str] = None
-    ) -> User:
+    ) -> Account:
         try:
             from playwright.async_api import async_playwright
         except ImportError:
@@ -380,11 +250,12 @@ class PixivClient(Net):
             await browser.close()
         self.access_token = data["access_token"]
         self.refresh_token = data["refresh_token"]
+        self._update_headers()
         with set_pixiv_client(self):
-            self.account = User.parse_obj(data["user"])
+            self.account = Account.model_validate(data["user"])
         return self.account
 
-    async def login_with_token(self, token: str) -> User:
+    async def login_with_token(self, token: str) -> Account:
         response = await self.post(
             _AUTH_TOKEN_URL,
             data={
@@ -399,8 +270,9 @@ class PixivClient(Net):
         data = response.json()
         self.access_token = data["access_token"]
         self.refresh_token = data["refresh_token"]
+        # self._update_headers()
         with set_pixiv_client(self):
-            self.account = User.parse_obj(data["user"])
+            self.account = Account.model_validate(data["user"])
         return self.account
 
     async def login(
@@ -408,7 +280,7 @@ class PixivClient(Net):
         username: Optional[str] = None,
         password: Optional[str] = None,
         token: Optional[str] = None,
-    ) -> User:
+    ) -> Account:
         if token is not None:
             return await self.login_with_token(token)
         else:

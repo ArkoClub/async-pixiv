@@ -3,11 +3,13 @@ from typing import Any, Optional, TYPE_CHECKING, TypeVar
 from pydantic import (
     BaseConfig as PydanticBaseConfig,
     BaseModel as PydanticBaseModel,
+    ConfigDict,
     PrivateAttr,
     validator,
 )
 
 from async_pixiv.utils.context import PixivClientContext
+from msgspec.json import encode as json_encode
 
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
@@ -19,20 +21,11 @@ __all__ = ["PixivModel", "PixivModelConfig", "null_dict_validator"]
 T = TypeVar("T")
 
 
-class PixivModelConfig(PydanticBaseConfig):
-    try:
-        import ujson as json
-    except ImportError:
-        import json
-    json_dumps = json.dumps
-    json_loads = json.loads
-    validate_all = True
-    validate_assignment = True
+PixivModelConfig = ConfigDict(validate_default=True, validate_assignment=True)
 
 
 class PixivModel(PydanticBaseModel):
-    class Config(PixivModelConfig):
-        pass
+    model_config = PixivModelConfig
 
     _pixiv_client: Optional["PixivClient"] = PrivateAttr(None)
 
@@ -41,7 +34,7 @@ class PixivModel(PydanticBaseModel):
         self._pixiv_client = PixivClientContext.get()
 
     def __new__(cls, *args, **kwargs):
-        cls.update_forward_refs()
+        cls.model_rebuild()
         return super(PixivModel, cls).__new__(cls)
 
     def __str__(self) -> str:
