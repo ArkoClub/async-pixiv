@@ -152,17 +152,17 @@ class Illust(PixivModel):
             try:
                 client = self._pixiv_client
                 response = await client.get(
-                    AJAX_HOST / f'illust/{self.id}',
+                    AJAX_HOST / f"illust/{self.id}",
                     follow_redirects=True,
                 )
                 response.raise_for_status()
-                json_data = response.json(raise_for_status=True)['body']
-                self._is_r18g = 'R-18' in [i['tag'] for i in json_data['tags']['tags']]
+                json_data = response.json(raise_for_status=True)["body"]
+                self._is_r18g = "R-18G" in [i["tag"] for i in json_data["tags"]["tags"]]
             except HTTPError:
                 self._is_r18g = any(
                     map(
                         lambda x: (
-                                "R-18G" in x.name.upper() or "R18G" in x.name.upper()
+                            "R-18G" in x.name.upper() or "R18G" in x.name.upper()
                         ),
                         self.tags,
                     )
