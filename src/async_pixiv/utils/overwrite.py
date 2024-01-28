@@ -18,9 +18,6 @@ from httpx._transports.default import (
     map_httpcore_exceptions,
 )
 
-# noinspection PyProtectedMember
-from httpx._utils import guess_json_utf
-
 from async_pixiv.error import ApiError, NotExist, RateLimit
 
 try:
@@ -60,13 +57,7 @@ class Response(DefaultResponse):
         if raise_for_status:
             self.raise_for_status()
 
-        result = None
-        if self.charset_encoding is None and self.content and len(self.content) > 3:
-            encoding = guess_json_utf(self.content)
-            if encoding is not None:
-                result = jsonlib.loads(self.content.decode(encoding), **kwargs)
-
-        result = jsonlib.loads(self.text, **kwargs) if result is None else result
+        result = jsonlib.loads(self.text, **kwargs)
 
         if isinstance(result, dict) and raise_for_result:
             self.raise_for_result(result)

@@ -19,6 +19,7 @@ from requests import HTTPError, Session
 from typing_extensions import Literal
 from yarl import URL
 
+# noinspection PyProtectedMember
 from async_pixiv.client._section._base import AJAX_HOST
 from async_pixiv.error import ArtWorkTypeError
 from async_pixiv.model._base import (
@@ -241,19 +242,19 @@ class Illust(PixivModel):
 
     @overload
     async def download_ugoira(self, *, type: Literal["zip"]) -> Optional[bytes]:
-        pass
+        """type of zip"""
 
     @overload
     async def download_ugoira(self, *, type: Literal["all"]) -> Optional[List[bytes]]:
-        pass
+        """type of all"""
 
     @overload
     async def download_ugoira(self, *, type: Literal["gif"]) -> Optional[bytes]:
-        pass
+        """type of GIF"""
 
     @overload
     async def download_ugoira(self, *, type: Literal["mp4"]) -> Optional[bytes]:
-        pass
+        """type of mp4"""
 
     async def download_ugoira(
         self, *, type: UGOIRA_RESULT_TYPE = "zip"

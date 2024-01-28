@@ -9,10 +9,10 @@ dependencies = [
     "pydantic[email]<2.0.0,>=1.10.2",
     "aiohttp-socks<1.0.0,>=0.7.1",
     "arko-wrapper<1.0.0,>=0.2.4",
-    "aiofiles<1.0.0,>=0.8.0",
-    "httpx<0.24.0,>=0.23.3",
+    "aiofiles<24.0.0, >=23.2.0",
+    "httpx<0.27.0, >=0.26.0",
     "aiolimiter<2.0.0,>=1.0.0",
-    "pyee<10.0.0,>=9.0.4",
+    "pyee<12.0.0,>=11.0.1",
 ]
 requires-python = ">=3.8,<4.0"
 readme = "README.md"
@@ -38,7 +38,7 @@ homepage = "https://github.com/ArkoClub/async-pixiv"
 repository = "https://github.com/ArkoClub/async-pixiv"
 
 [tool.pdm]
-package-type = "library"
+distribution = true
 
 [tool.pdm.build]
 includes = ["src/async_pixiv", "LICENSE"]
@@ -47,7 +47,7 @@ includes = ["src/async_pixiv", "LICENSE"]
 regex = ["regex<2023.0.0,>=2022.9.13"]
 ujson = ["ujson<6.0.0,>=5.5.0"]
 extra = ["uvloop<1.0.0,>=0.16.0; sys_platform != \"win32\""]
-playwright = ["playwright<2.0.0,>=1.26.1"]
+playwright = ["playwright<2.0.0,>=1.41.0"]
 
 [tool.pdm.dev-dependencies]
 dev = [
