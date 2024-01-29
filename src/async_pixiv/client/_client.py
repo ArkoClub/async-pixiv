@@ -334,9 +334,9 @@ class PixivClient(Net):
             )
 
             # 输入用户名与密码
-            password_input = page.locator('input[autocomplete="username"]')
-            await password_input.fill(username)
-            await page.locator('input[type="password"]').fill(password)
+            await page.locator('input[autocomplete="username"]').fill(username)
+            password_input = page.locator('input[type="password"]')
+            await password_input.fill(password)
 
             # 点击登录按钮
             # noinspection SpellCheckingInspection
