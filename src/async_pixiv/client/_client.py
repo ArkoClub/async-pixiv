@@ -339,14 +339,14 @@ class PixivClient(Net):
             await password_input.fill(password)
 
             # 点击登录按钮
-            login_form = password_input.locator("xpath=ancestor::form")  # 从密码输入框导航到外层的 form 元素
-            login_button = login_form.locator('button, input[type="submit"]')  # 从 form 元素内部定位到登录按钮
-            await login_button.click()
+            login_form = password_input.locator("xpath=ancestor::form") # 从密码输入框导航到外层的 form 元素
+            login_button = login_form.locator('button, input[type="submit"]') # 从 form 元素内部定位到登录按钮
 
             # 验证登录
             # noinspection PyBroadException
             try:
                 async with page.expect_response(f"{_LOGIN_VERIFY}*") as future:
+                    await login_button.click()
                     response = await (await future.value).json()
                 raise LoginError(f"登录错误，请检查登录的用户名和密码是否正确：{response['body']['errors']}")
             except Exception as e:
