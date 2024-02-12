@@ -51,15 +51,12 @@ class Response(DefaultResponse):
     def json(
         self,
         raise_for_result: bool = True,
-        raise_for_status: bool = True,
         **kwargs: Any,
     ) -> Any:
-        if raise_for_status:
-            self.raise_for_status()
 
-        result = jsonlib.loads(self.text, **kwargs)
+        result = jsonlib.loads(self.content, **kwargs)
 
-        if isinstance(result, dict) and raise_for_result:
+        if raise_for_result:
             self.raise_for_result(result)
 
         return result
