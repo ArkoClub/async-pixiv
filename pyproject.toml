@@ -64,7 +64,10 @@ include = '\.pyi?$'
 [project.optional-dependencies]
 regex = ["regex<2024.0.0,>=2022.9.13"]
 extra = ["uvloop<1.0.0,>=0.16.0; sys_platform != \"win32\""]
-playwright = ["playwright<2.0.0,>=1.26.1"]
+playwright = [
+    "playwright<2.0.0,>=1.26.1",
+    "pyotp>=2.9.0",
+]
 
 [build-system]
 requires = ["pdm-backend"]

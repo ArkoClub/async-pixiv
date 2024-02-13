@@ -5,7 +5,7 @@
 groups = ["default", "ujson", "extra", "regex", "dev", "playwright"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:b01bb71f0bc65c6945393c32b27cc2ec94de5c0c64eef3b3551da9128383a27e"
+content_hash = "sha256:e0631a8d828993392c506255e75949d87793b8bd69a02486a301e6389e48dee7"
 
 [[package]]
 name = "aiofiles"
@@ -913,6 +913,17 @@ dependencies = [
 files = [
     {file = "pyee-11.0.1-py3-none-any.whl", hash = "sha256:9bcc9647822234f42c228d88de63d0f9ffa881e87a87f9d36ddf5211f6ac977d"},
     {file = "pyee-11.0.1.tar.gz", hash = "sha256:a642c51e3885a33ead087286e35212783a4e9b8d6514a10a5db4e57ac57b2b29"},
+]
+
+[[package]]
+name = "pyotp"
+version = "2.9.0"
+requires_python = ">=3.7"
+summary = "Python One Time Password Library"
+groups = ["playwright"]
+files = [
+    {file = "pyotp-2.9.0-py3-none-any.whl", hash = "sha256:81c2e5865b8ac55e825b0358e496e1d9387c811e85bb40e71a3b29b288963612"},
+    {file = "pyotp-2.9.0.tar.gz", hash = "sha256:346b6642e0dbdde3b4ff5a930b664ca82abfa116356ed48cc42c7d6590d36f63"},
 ]
 
 [[package]]
