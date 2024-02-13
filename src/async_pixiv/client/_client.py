@@ -9,7 +9,6 @@ from typing import (
     NamedTuple,
     Optional,
     TYPE_CHECKING,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -32,6 +31,7 @@ from async_pixiv.error import (
 )
 from async_pixiv.model.user import Account
 from async_pixiv.utils.context import set_pixiv_client
+from async_pixiv.utils.func import oauth_pkce
 from async_pixiv.utils.net import Net
 from async_pixiv.utils.singleton import Singleton
 
@@ -44,9 +44,10 @@ if TYPE_CHECKING:
 
 __all__ = ["PixivClient"]
 
-_REDIRECT_URI = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
+_REDIRECT_URL = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
 _LOGIN_URL = "https://app-api.pixiv.net/web/v1/login"
 _LOGIN_VERIFY = "https://accounts.pixiv.net/ajax/login"
+_LOGIN_TWO_FACTOR = "https://accounts.pixiv.net/ajax/login/two-factor-authentication"
 _AUTH_TOKEN_URL = "https://oauth.secure.pixiv.net/auth/token"
 
 P = ParamSpec("P")
@@ -151,111 +152,139 @@ class PixivClient(Net, metaclass=Singleton):
             }
         )
 
-    async def login_with_pwd(
-        self, username: str, password: str, proxy: Optional[str] = None
+    async def login_with_pwd(  # NOSONAR
+        self,
+        username: str,
+        password: str,
+        one_time_password_secret: Optional[str] = None,
+        *,
+        proxy: Optional[str] = None,
     ) -> Account:
         try:
             from playwright.async_api import async_playwright
+
+            # noinspection PyProtectedMember
+            from playwright._impl._errors import TimeoutError
+
         except ImportError:
             raise ImportError("Please install 'playwright'.")
+        try:
+            from pyotp.totp import TOTP
+        except ImportError:
+            raise ImportError("Please install 'pyotp'.")
+        from urllib.parse import parse_qs, urlparse, urlencode
 
-        def oauth_pkce() -> Tuple[str, str]:
-            from secrets import token_urlsafe
-            from hashlib import sha256
-            from base64 import urlsafe_b64encode
+        if one_time_password_secret is not None:
+            totp = TOTP(one_time_password_secret)
+        else:
+            totp = None
 
-            verifier = token_urlsafe(32)
-            challenge = (
-                urlsafe_b64encode(sha256(verifier.encode("ascii")).digest())
-                .rstrip(b"=")
-                .decode("ascii")
-            )
-            return verifier, challenge
+        playwright_context = async_playwright()
+        playwright = await playwright_context.__aenter__()
 
-        async with async_playwright() as playwright:
-            from urllib.parse import (
-                parse_qs,
-                urlparse,
-                urlencode,
-            )
+        if proxy is not None:
+            # noinspection PyTypeChecker
+            browser = await playwright.firefox.launch(proxy={"server": proxy})
+        else:
+            browser = await playwright.firefox.launch()
 
-            if proxy is not None:
-                # noinspection PyTypeChecker
-                browser = await playwright.chromium.launch(proxy={"server": proxy})
-            else:
-                browser = await playwright.chromium.launch()
-            context = await browser.new_context()
-            api_request_context = context.request
-            page = await context.new_page()
+        context = await browser.new_context()
+        api_request_context = context.request
+        page = await context.new_page()
 
-            # 访问登录页面
-            code_verifier, code_challenge = oauth_pkce()
-            await page.goto(
-                urlparse(_LOGIN_URL)
-                ._replace(
-                    query=urlencode(
-                        {
-                            "code_challenge": code_challenge,
-                            "code_challenge_method": "S256",
-                            "client": "pixiv-android",
-                        }
-                    )
+        async def raise_errors(_response) -> None:
+            if errors := _response["body"].get("errors"):
+                logger.debug(f"登录错误：{errors}")
+                info_box = page.locator("form > p")
+                if not (await info_box.count()):
+                    info_box = page.locator("form > div:first-child")
+                information = await info_box.inner_text()
+                raise LoginError(information or "请检查输入的信息是否正确")
+
+        # 访问登录页面
+        code_verifier, code_challenge = oauth_pkce()
+        await page.goto(
+            urlparse(_LOGIN_URL)
+            ._replace(
+                query=urlencode(
+                    {
+                        "code_challenge": code_challenge,
+                        "code_challenge_method": "S256",
+                        "client": "pixiv-android",
+                    }
                 )
-                .geturl(),
-                timeout=0,
+            )
+            .geturl(),
+            timeout=0,
+        )
+
+        # 输入用户名与密码
+        await page.locator('input[autocomplete="username"]').fill(username)
+        await page.locator('input[type="password"]').fill(password)
+
+        submit_button = page.locator("form").nth(0).locator("button[type='submit']")
+
+        # 验证登录
+        async with page.expect_response(_LOGIN_VERIFY + "*") as future_response:
+            await submit_button.click()
+            print(type(value := await future_response.value))
+            response = await value.json()
+
+        await raise_errors(response)
+
+        # 获取 code
+        if response["body"].get("requireTwoFactorAuthentication"):
+            ont_time_code_input = page.locator('input[autocomplete="one-time-code"]')
+            await ont_time_code_input.fill(
+                totp.now()
+                if totp
+                else input("由于您开启了两步验证，现请输入两步验证的验证码：")
             )
 
-            # 输入用户名与密码
-            await page.locator('input[autocomplete="username"]').fill(username)
-            password_input = page.locator('input[type="password"]')
-            await password_input.fill(password)
-
-            # 点击登录按钮
-            # 从密码输入框导航到外层的 form 元素
-            login_form = password_input.locator("xpath=ancestor::form")
-            # 从 form 元素内部定位到登录按钮
-            login_button = login_form.locator('button, input[type="submit"]')
-
-            # 验证登录
-            # noinspection PyBroadException
-            try:
-                async with page.expect_response(f"{_LOGIN_VERIFY}*") as future:
-                    await login_button.click()
-                    response = await (await future.value).json()
-                raise LoginError(
-                    f"登录错误，请检查登录的用户名和密码是否正确：{response['body']['errors']}"
-                )
-            except Exception as e:
-                if not isinstance(e, LoginError):
-                    logger.debug("登录成功，正尝试获取 token")
-
-            # 获取code
-            async with page.expect_request(f"{_REDIRECT_URI}*") as request:
+            async with page.expect_request(_REDIRECT_URL + "*") as request:
+                try:
+                    async with (
+                        page.expect_response(
+                            _LOGIN_TWO_FACTOR + "*", timeout=3000
+                        ) as future,
+                    ):
+                        await submit_button.click()
+                        response = await (await future.value).json()
+                    await raise_errors(response)
+                except TimeoutError:
+                    logger.debug("两步验证成功")
                 url = urlparse((await request.value).url)
-            code = parse_qs(url.query)["code"][0]
+        else:
+            async with page.expect_request(_REDIRECT_URL + "*") as request:
+                url = urlparse((await request.value).url)
+        code = parse_qs(url.query)["code"][0]
 
-            # 获取token
-            response = await api_request_context.post(
-                _AUTH_TOKEN_URL,
-                form={
-                    "client_id": self._config.client_id,
-                    "client_secret": self._config.client_secret,
-                    "code": code,
-                    "code_verifier": code_verifier,
-                    "grant_type": "authorization_code",
-                    "include_policy": "true",
-                    "redirect_uri": _REDIRECT_URI,
-                },
-                headers={
-                    "Accept-Encoding": "gzip, deflate",
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "User-Agent": self._config.user_agent,
-                    "Host": "oauth.secure.pixiv.net",
-                },
-                timeout=0,
-            )
-            data = await response.json()
-            await browser.close()
+        logger.debug("登录成功，正尝试获取 token")
+
+        # 获取token
+        response = await api_request_context.post(
+            _AUTH_TOKEN_URL,
+            form={
+                "client_id": self._config.client_id,
+                "client_secret": self._config.client_secret,
+                "code": code,
+                "code_verifier": code_verifier,
+                "grant_type": "authorization_code",
+                "include_policy": "true",
+                "redirect_uri": _REDIRECT_URL,
+            },
+            headers={
+                "Accept-Encoding": "gzip, deflate",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": self._config.user_agent,
+                "Host": "oauth.secure.pixiv.net",
+            },
+            timeout=0,
+        )
+        data = await response.json()
+        await browser.close()
+        await playwright_context.__aexit__()
+
         self.access_token = data["access_token"]
         self.refresh_token = data["refresh_token"]
         self._update_headers()
@@ -278,7 +307,7 @@ class PixivClient(Net, metaclass=Singleton):
         data = response.json()
         self.access_token = data["access_token"]
         self.refresh_token = data["refresh_token"]
-        # self._update_headers()
+        self._update_headers()
         with set_pixiv_client(self):
             self.account = Account.model_validate(data["user"])
         return self.account
