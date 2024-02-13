@@ -143,9 +143,11 @@ class PixivClient(Net, metaclass=Singleton):
     def _update_headers(self) -> None:
         self._headers.update(
             {
-                "Authorization": self.access_token
-                if self.access_token is None
-                else f"Bearer {self.access_token}",
+                "Authorization": (
+                    self.access_token
+                    if self.access_token is None
+                    else f"Bearer {self.access_token}"
+                ),
             }
         )
 
@@ -209,8 +211,10 @@ class PixivClient(Net, metaclass=Singleton):
             await password_input.fill(password)
 
             # 点击登录按钮
-            login_form = password_input.locator("xpath=ancestor::form") # 从密码输入框导航到外层的 form 元素
-            login_button = login_form.locator('button, input[type="submit"]') # 从 form 元素内部定位到登录按钮
+            # 从密码输入框导航到外层的 form 元素
+            login_form = password_input.locator("xpath=ancestor::form")
+            # 从 form 元素内部定位到登录按钮
+            login_button = login_form.locator('button, input[type="submit"]')
 
             # 验证登录
             # noinspection PyBroadException
@@ -218,7 +222,9 @@ class PixivClient(Net, metaclass=Singleton):
                 async with page.expect_response(f"{_LOGIN_VERIFY}*") as future:
                     await login_button.click()
                     response = await (await future.value).json()
-                raise LoginError(f"登录错误，请检查登录的用户名和密码是否正确：{response['body']['errors']}")
+                raise LoginError(
+                    f"登录错误，请检查登录的用户名和密码是否正确：{response['body']['errors']}"
+                )
             except Exception as e:
                 if not isinstance(e, LoginError):
                     logger.debug("登录成功，正尝试获取 token")
@@ -296,6 +302,7 @@ class PixivClient(Net, metaclass=Singleton):
         chunk_size: Optional[int] = None,
     ) -> bytes:
         data = b""
+        # noinspection PyArgumentList
         async with self.stream("GET", url) as response:
             if not isinstance(output, BytesIO) and output:
                 output = Path(output).resolve()
