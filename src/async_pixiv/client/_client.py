@@ -56,10 +56,41 @@ T = TypeVar("T")
 logger = logging.getLogger("async_pixiv.client")
 
 
-# noinspection PyPep8Naming
-class PixivClient(Net, metaclass=Singleton):
+# noinspection PyTypeChecker,PyPep8Naming
+class _PixivClientSections:
     _lock: ThreadLock = ThreadLock()
+    _sections: dict[str, SectionType] = {}
 
+    @property
+    def USER(self) -> "USER":  # NOSONAR
+        with self._lock:
+            if self._sections.get("user", None) is None:
+                from async_pixiv.client import USER
+
+                self._sections["user"] = USER(self)
+        return self._sections["user"]
+
+    @property
+    def ILLUST(self) -> "ILLUST":  # NOSONAR
+        with self._lock:
+            if self._sections.get("illust", None) is None:
+                from async_pixiv.client import ILLUST
+
+                self._sections["illust"] = ILLUST(self)
+        return self._sections["illust"]
+
+    @property
+    def NOVEL(self) -> "NOVEL":  # NOSONAR
+        with self._lock:
+            if self._sections.get("novel", None) is None:
+                from async_pixiv.client import NOVEL
+
+                self._sections["novel"] = NOVEL(self)
+        return self._sections["novel"]
+
+
+# noinspection PyPep8Naming
+class PixivClient(Net, _PixivClientSections, metaclass=Singleton):
     class Config(NamedTuple):
         client_id: str
         client_secret: str
@@ -72,34 +103,6 @@ class PixivClient(Net, metaclass=Singleton):
     access_token: str | None = None
     refresh_token: str | None = None
     account: Account | None = None
-    _sections: dict[str, SectionType] = {}
-
-    @property
-    def USER(self) -> "USER":
-        with self._lock:
-            if self._sections.get("user", None) is None:
-                from async_pixiv.client import USER
-
-                self._sections["user"] = USER(self)
-        return self._sections["user"]
-
-    @property
-    def ILLUST(self) -> "ILLUST":
-        with self._lock:
-            if self._sections.get("illust", None) is None:
-                from async_pixiv.client import ILLUST
-
-                self._sections["illust"] = ILLUST(self)
-        return self._sections["illust"]
-
-    @property
-    def NOVEL(self) -> "NOVEL":
-        with self._lock:
-            if self._sections.get("novel", None) is None:
-                from async_pixiv.client import NOVEL
-
-                self._sections["novel"] = NOVEL(self)
-        return self._sections["novel"]
 
     @property
     def is_logged(self) -> bool:
@@ -183,7 +186,6 @@ class PixivClient(Net, metaclass=Singleton):
         playwright = await playwright_context.__aenter__()
 
         if proxy is not None:
-            # noinspection PyTypeChecker
             browser = await playwright.firefox.launch(proxy={"server": proxy})
         else:
             browser = await playwright.firefox.launch()
@@ -227,8 +229,7 @@ class PixivClient(Net, metaclass=Singleton):
         # 验证登录
         async with page.expect_response(_LOGIN_VERIFY + "*") as future_response:
             await submit_button.click()
-            print(type(value := await future_response.value))
-            response = await value.json()
+            response = await (await future_response.value).json()
 
         await raise_errors(response)
 
@@ -257,6 +258,7 @@ class PixivClient(Net, metaclass=Singleton):
         else:
             async with page.expect_request(_REDIRECT_URL + "*") as request:
                 url = urlparse((await request.value).url)
+
         code = parse_qs(url.query)["code"][0]
 
         logger.debug("登录成功，正尝试获取 token")
