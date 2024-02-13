@@ -56,6 +56,11 @@ dev = [
     "black<25.0.0,>=24.2.0",
 ]
 
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+
 [project.optional-dependencies]
 regex = ["regex<2024.0.0,>=2022.9.13"]
 extra = ["uvloop<1.0.0,>=0.16.0; sys_platform != \"win32\""]
