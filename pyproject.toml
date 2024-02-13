@@ -6,16 +6,16 @@ authors = [
     { name = "Arko", email = "arko.space.cc@gmail.com" },
 ]
 dependencies = [
-    "pydantic[email]>=2.5.2",
+    "pydantic[email]<2.7.0,>=2.6.0",
     "arko-wrapper>=0.2.8",
-    "aiofiles>=23.2.1",
-    "httpx>=0.25.2",
+    "aiofiles<24.0.0,>=23.2.1",
+    "httpx<0.27.0,>=0.26.0",
     "aiohttp-socks>=0.8.4",
-    "pyee>=9.0.4",
-    "msgspec>=0.18.5",
-    "aiolimiter>=1.1.0",
-    "requests>=2.31.0",
-    "orjson>=3.9.10",
+    "pyee<12.0.0,>=11.0.1",
+    "msgspec<0.19.0,>=0.18.6",
+    "aiolimiter<2.0.0,>=1.1.0",
+    "requests<2.32.0,>=2.31.0",
+    "orjson<3.10.0,>=3.9.13",
 ]
 requires-python = ">=3.10,<4.0"
 readme = "README.md"
@@ -38,13 +38,14 @@ classifiers = [
 homepage = "https://github.com/ArkoClub/async-pixiv"
 repository = "https://github.com/ArkoClub/async-pixiv"
 
-[tool.pdm]
-package-type = "library"
 
+[tool.pdm]
+distribution = true
 [[tool.pdm.source]]
 name = "official-pypi"
 url = "https://pypi.python.org/simple"
 verify_ssl = true
+
 
 [tool.pdm.build]
 includes = ["src/async_pixiv", "LICENSE"]
@@ -52,7 +53,7 @@ includes = ["src/async_pixiv", "LICENSE"]
 [tool.pdm.dev-dependencies]
 dev = [
     "pytest<4.0,>=3.0",
-    "black>=23.12.0",
+    "black<25.0.0,>=24.2.0",
 ]
 
 [project.optional-dependencies]
