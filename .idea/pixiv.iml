@@ -7,6 +7,9 @@
     <orderEntry type="jdk" jdkName="async-pixiv(py38)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="PackageRequirementsSettings">
+    <option name="requirementsPath" value="" />
+  </component>
   <component name="PyDocumentationSettings">
     <option name="format" value="GOOGLE" />
     <option name="myDocStringFormat" value="Google" />
@@ -14,5 +17,8 @@
   </component>
   <component name="SonarLintModuleSettings">
     <option name="uniqueId" value="396a43ff-2232-46d6-a90f-ee0e30c0a191" />
+  </component>
+  <component name="TestRunnerService">
+    <option name="PROJECT_TEST_RUNNER" value="py.test" />
   </component>
 </module>
