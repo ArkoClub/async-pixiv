@@ -81,9 +81,7 @@ class ILLUST(_Section):
         self,
         id: int,
         *,
-        filter: Optional[
-            Union[Literal["for_android", "for_ios"], SearchFilter]
-        ] = SearchFilter.ios,
+        filter: FilterTypes | None = SearchFilter.ios,
     ) -> IllustDetailResult:
         data = await self._detail(id, filter=filter)
         with set_pixiv_client(self._pixiv_client):

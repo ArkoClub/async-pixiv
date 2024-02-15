@@ -24,6 +24,7 @@ from httpx._types import (
     URLTypes,
 )
 
+from async_pixiv.error import RateLimitError
 from async_pixiv.utils.bypass import BypassAsyncHTTPTransport
 from async_pixiv.utils.enums import Enum as PixivEnum
 from async_pixiv.utils.overwrite import AsyncHTTPTransport, Response, AsyncClient
@@ -152,8 +153,10 @@ class Net(object):
         auth: Union["AuthTypes", "UseClientDefault", None] = USE_CLIENT_DEFAULT,
         follow_redirects: Union[bool, "UseClientDefault"] = True,
     ) -> Response:
+        import asyncio
+
         error: BaseException | None = None
-        for n in range(self._retry):
+        while (n := 0) < self._retry:
             async with self._limiter:
                 try:
                     return await self._send(
@@ -162,9 +165,11 @@ class Net(object):
                         auth=auth,
                         follow_redirects=follow_redirects,
                     )
+                except RateLimitError:
+                    logger.error(f"Rate limit. Retrying in {self._retry_sleep}s.")
+                    n -= 1
+                    await asyncio.sleep(self._retry_sleep)
                 except Exception as exc:
-                    import asyncio
-
                     error = exc
                     logger.warning(
                         f"Request Error: {exc}. "

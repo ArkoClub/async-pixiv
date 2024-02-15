@@ -1,11 +1,7 @@
 from typing import Sequence
 
-from async_pixiv.client._section._base import (
-    SearchFilter,
-    SearchShort,
-    V1_API,
-    _Section,
-)
+from async_pixiv.client._section._base import _Section
+from async_pixiv.const import V1_API
 from async_pixiv.model.illust import IllustType
 from async_pixiv.model.result import (
     UserBookmarksIllustsResult,
@@ -17,6 +13,7 @@ from async_pixiv.model.result import (
 )
 from async_pixiv.typedefs import DurationTypes, FilterTypes, IllustTypes, ShortTypes
 from async_pixiv.utils.context import set_pixiv_client
+from async_pixiv.utils.enums import SearchFilter, SearchShort
 
 __all__ = ("USER",)
 

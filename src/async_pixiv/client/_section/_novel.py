@@ -1,7 +1,5 @@
 from datetime import date
-from typing import Optional, Union
-
-from typing_extensions import Literal
+from typing import Optional, Sequence
 
 from async_pixiv.client._section._base import _Section
 from async_pixiv.const import V1_API, V2_API
@@ -26,7 +24,7 @@ __all__ = ("NOVEL",)
 class NOVEL(_Section):
     async def search(
         self,
-        word: str,
+        words: str | Sequence[str],
         *,
         sort: ShortTypes = SearchShort.DateDecrease,
         duration: DurationTypes | None = None,
@@ -45,8 +43,8 @@ class NOVEL(_Section):
             start_date = start_date.strftime("%Y-%m-%d")
         if end_date is not None:
             end_date = end_date.strftime("%Y-%m-%d")
-        data = await super(NOVEL, self).search(
-            word,
+        data = await self._search(
+            words,
             sort=sort,
             target=target,
             duration=duration,
@@ -67,15 +65,9 @@ class NOVEL(_Section):
         self,
         id: int,
         *,
-        filter: Optional[
-            Union[Literal["for_android", "for_ios"], SearchFilter]
-        ] = SearchFilter.ios,
+        filter: FilterTypes | None = SearchFilter.ios,
     ) -> NovelDetailResult:
-        data = (
-            await self._pixiv_client.get(
-                V2_API / "novel/detail", params={"novel_id": id}
-            )
-        ).json()
+        data = await self._detail(id, filter=filter)
         with set_pixiv_client(self._pixiv_client):
             return NovelDetailResult.parse_obj(data)
 
@@ -90,9 +82,7 @@ class NOVEL(_Section):
         self,
         id: int,
         *,
-        filter: Optional[
-            Union[Literal["for_android", "for_ios"], SearchFilter]
-        ] = SearchFilter.ios,
+        filter: FilterTypes | None = SearchFilter.ios,
     ) -> NovelSeriesResult:
         data = (
             await self._pixiv_client.get(

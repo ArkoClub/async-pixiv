@@ -45,29 +45,22 @@ class StatusError(PixivError):
 
 class ApiError(PixivError):
     user_message: str = ""
-    reason: str = ""
     user_message_details: str = ""
 
     def __init__(self, data: dict) -> None:
         self.user_message = data.get("user_message", self.user_message)
         self.message = data.get("message", self.message)
-        self.reason = data.get("reason", self.reason)
         self.user_message_details = data.get(
             "user_message_details", self.user_message_details
         )
 
     def __str__(self) -> str:
-        return (
-            self.user_message
-            or self.message
-            or self.reason
-            or self.user_message_details
-        )
+        return self.user_message or self.message or self.user_message_details
 
 
-class RateLimit(ApiError):
-    reason = "速率限制"
+class RateLimitError(ApiError):
+    message = "速率限制"
 
 
-class NotExist(StatusError):
-    reason = "作品不存在或无浏览权限"
+class NotExistError(StatusError):
+    message = "作品不存在或无浏览权限"

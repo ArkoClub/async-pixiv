@@ -22,9 +22,9 @@ from httpx._transports.default import (
 from async_pixiv.error import (
     ApiError,
     InvalidRefreshToken,
-    NotExist,
+    NotExistError,
     PixivError,
-    RateLimit,
+    RateLimitError,
 )
 
 try:
@@ -35,10 +35,10 @@ except ImportError:
 __all__ = ("AsyncHTTPTransport", "HTTPTransport", "Response", "AsyncClient")
 
 STATUS_ERROR_MAP = {
-    404: NotExist,
+    404: NotExistError,
 }
 RESULT_ERROR_MAP = {
-    "Rate Limit": RateLimit,
+    "Rate Limit": RateLimitError,
     "invalid_grant": InvalidRefreshToken,
 }
 
@@ -60,7 +60,7 @@ class Response(DefaultResponse):
             if (errors := json_data.get("errors")) is not None and errors:
                 raise PixivError(errors)
             elif (error := json_data.get("error")) is not None and error:
-                raise RESULT_ERROR_MAP.get(error["reason"], ApiError)(error)
+                raise RESULT_ERROR_MAP.get(error["message"], ApiError)(error)
         return self
 
     @lru_cache(maxsize=8)
