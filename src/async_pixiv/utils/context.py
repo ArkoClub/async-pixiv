@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
@@ -11,6 +11,7 @@ __all__ = (
     "async_do_nothing",
     "PixivClientContext",
     "set_pixiv_client",
+    "get_pixiv_client",
 )
 
 PixivClientContext: ContextVar["PixivClient"] = ContextVar("PixivClientContext")
@@ -55,3 +56,13 @@ def set_pixiv_client(client: "PixivClient") -> "PixivClient":
         yield client
     finally:
         PixivClientContext.reset(token)
+
+
+def get_pixiv_client(raise_error: bool = False) -> Optional["PixivClient"]:
+    try:
+        return PixivClientContext.get()
+    except LookupError:
+        if not raise_error:
+            return None
+        else:
+            raise LookupError("You should set your Pixiv client first.")

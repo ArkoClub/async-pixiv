@@ -1,9 +1,10 @@
 from asyncio import Event
 from datetime import datetime
 from enum import Enum
+from functools import cached_property
 from io import BytesIO
 from pathlib import Path
-from typing import Any, List, Optional, TYPE_CHECKING, Union, overload
+from typing import Any, Optional, TYPE_CHECKING, Union, overload
 from zipfile import ZipFile
 
 from aiofiles import open as async_open
@@ -16,16 +17,12 @@ from pydantic import (
     PrivateAttr,
 )
 from requests import HTTPError, Session
-from typing_extensions import Literal
+from typing_extensions import Annotated, Literal
 from yarl import URL
 
-# noinspection PyProtectedMember
-from async_pixiv.client._section._base import AJAX_HOST
+from async_pixiv.const import AJAX_HOST
 from async_pixiv.error import ArtWorkTypeError
-from async_pixiv.model._base import (
-    PixivModel,
-    null_dict_validator,
-)
+from async_pixiv.model._base import NullDictValidator, PixivModel
 from async_pixiv.model.other import (
     AIType,
     ImageUrl,
@@ -33,8 +30,9 @@ from async_pixiv.model.other import (
     Tag,
 )
 from async_pixiv.model.user import User
+from async_pixiv.typedefs import UGOIRA_RESULT_TYPE
+from async_pixiv.utils.context import get_pixiv_client
 from async_pixiv.utils.ffmpeg import FFmpeg
-from async_pixiv.utils.typedefs import UGOIRA_RESULT_TYPE
 
 try:
     import regex as re
@@ -75,18 +73,20 @@ class IllustType(Enum):
                 return False
 
 
+class IllustMetaPage(PixivModel):
+    image_urls: "ImageUrl"
+
+
+class IllustMetaSinglePage(PixivModel):
+    original: AnyHttpUrl | None = Field(None, alias="original_image_url")
+
+    @property
+    def link(self):
+        return self.original
+
+
 # noinspection PyProtectedMember,PyShadowingBuiltins
 class Illust(PixivModel):
-    class MetaPage(PixivModel):
-        image_urls: "ImageUrl"
-
-    class MetaSinglePage(PixivModel):
-        original: Optional[AnyHttpUrl] = Field(alias="original_image_url")
-
-        @property
-        def link(self):
-            return self.original
-
     id: int
     title: str
     type: IllustType
@@ -94,35 +94,35 @@ class Illust(PixivModel):
     caption: str
     restrict: int
     user: "User"
-    tags: List[Tag]
-    tools: List[str]
+    tags: list[Tag]
+    tools: list[str]
     create_date: datetime
     page_count: int
     width: int
     height: int
     sanity_level: int
     x_restrict: int
-    series: Optional[Series]
-    meta_single_page: MetaSinglePage
-    meta_pages: List[MetaPage]
+    series: Series | None = None
+    meta_single_page: IllustMetaSinglePage
+    meta_pages: list[IllustMetaPage]
     total_view: int
     total_bookmarks: int
     is_bookmarked: bool
     visible: bool
     is_muted: bool
-    total_comments: Optional[int]
-    comment_access_control: Optional[int]
+    total_comments: int | None = None
+    comment_access_control: int | None = None
     ai_type: AIType = Field(alias="illust_ai_type")
 
     _ugoira_metadata: Optional["UgoiraMetadata"] = PrivateAttr(None)
-    _is_r18: Optional[bool] = PrivateAttr(None)
-    _is_r18g: Optional[bool] = PrivateAttr(None)
+    _is_r18: bool | None = PrivateAttr(None)
+    _is_r18g: bool | None = PrivateAttr(None)
 
-    @property
+    @cached_property
     def link(self) -> URL:
         return URL(f"https://www.pixiv.net/artworks/{self.id}/")
 
-    @property
+    @cached_property
     def is_nsfw(self) -> bool:
         return self.sanity_level > 5
 
@@ -141,7 +141,7 @@ class Illust(PixivModel):
             except HTTPError:
                 self._is_r18 = any(
                     map(
-                        lambda x: ("R-18" in x.name.upper() or "R18" in x.name.upper()),
+                        lambda x: ("R18" in x.name.replace("-", "").upper()),
                         self.tags,
                     )
                 )
@@ -162,16 +162,14 @@ class Illust(PixivModel):
             except HTTPError:
                 self._is_r18g = any(
                     map(
-                        lambda x: (
-                            "R-18G" in x.name.upper() or "R18G" in x.name.upper()
-                        ),
+                        lambda x: ("R18G" in x.name.replace("-", "").upper()),
                         self.tags,
                     )
                 )
         return self._is_r18g
 
-    @property
-    def all_image_urls(self) -> List[URL]:
+    @cached_property
+    def all_image_urls(self) -> list[URL]:
         if not self.meta_pages:
             # noinspection PyTypeChecker
             return [self.meta_single_page.original]
@@ -187,15 +185,15 @@ class Illust(PixivModel):
             self.id, filter=SearchFilter.ios if for_ios else SearchFilter.android
         )
 
-    async def comments(self, *, offset: Optional[int] = None) -> "IllustCommentResult":
+    async def comments(self, *, offset: int | None = None) -> "IllustCommentResult":
         return await self._pixiv_client.ILLUST.comments(self.id, offset=offset)
 
     async def related(
         self,
         *,
         for_ios: bool = True,
-        offset: Optional[int] = None,
-        seed_id: Optional[int] = None,
+        offset: int | None = None,
+        seed_id: int | None = None,
     ) -> "IllustRelatedResult":
         from async_pixiv.client._section._base import SearchFilter
 
@@ -212,11 +210,8 @@ class Illust(PixivModel):
         full: bool = False,
         output: Optional[Union[str, Path]] = None,
         client: Optional["PixivClient"] = None,
-    ) -> List[bytes]:
-        if client is None:
-            from async_pixiv.client import PixivClient
-
-            client = PixivClient.get_client()
+    ) -> list[bytes]:
+        client = client or get_pixiv_client(True)
         if not full or not self.meta_pages:
             return [
                 await client.download(
@@ -224,7 +219,7 @@ class Illust(PixivModel):
                 )
             ]
         else:
-            result: List[bytes] = []
+            result: list[bytes] = []
             for meta_page in self.meta_pages:
                 result.append(
                     await client.download(meta_page.image_urls.link, output=output)
@@ -245,7 +240,7 @@ class Illust(PixivModel):
         """type of zip"""
 
     @overload
-    async def download_ugoira(self, *, type: Literal["all"]) -> Optional[List[bytes]]:
+    async def download_ugoira(self, *, type: Literal["all"]) -> Optional[list[bytes]]:
         """type of all"""
 
     @overload
@@ -258,7 +253,7 @@ class Illust(PixivModel):
 
     async def download_ugoira(
         self, *, type: UGOIRA_RESULT_TYPE = "zip"
-    ) -> Union[bytes, List[bytes], None]:
+    ) -> Union[bytes, list[bytes], None]:
         if self.type != IllustType.ugoira:
             raise ArtWorkTypeError(
                 "If you want to download a normal image, "
@@ -352,9 +347,9 @@ class Comment(PixivModel):
     comment: str
     date: datetime
     user: User
-    parent: Optional["Comment"] = Field(alias="parent_comment")
-
-    _check = null_dict_validator("parent")
+    parent: Annotated[Optional["Comment"], NullDictValidator] = Field(
+        None, alias="parent_comment"
+    )
 
 
 class UgoiraMetadata(PixivModel):
@@ -363,4 +358,4 @@ class UgoiraMetadata(PixivModel):
         delay: int
 
     zip_url: ImageUrl = Field(alias="zip_urls")
-    frames: List[Frame]
+    frames: list[Frame]

@@ -1,22 +1,20 @@
 from typing import Any, Optional, TYPE_CHECKING, TypeVar
 
 from pydantic import (
-    BaseConfig as PydanticBaseConfig,
     BaseModel as PydanticBaseModel,
     ConfigDict,
     PrivateAttr,
-    validator,
 )
+from pydantic.functional_validators import BeforeValidator
 
-from async_pixiv.utils.context import PixivClientContext
-from msgspec.json import encode as json_encode
+from async_pixiv.utils.context import get_pixiv_client
 
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
 
     Model = TypeVar("Model", bound="BaseModel")
 
-__all__ = ["PixivModel", "PixivModelConfig", "null_dict_validator"]
+__all__ = ["PixivModel", "PixivModelConfig", "NullDictValidator"]
 
 T = TypeVar("T")
 
@@ -31,7 +29,7 @@ class PixivModel(PydanticBaseModel):
 
     def __init__(self, **data: Any):
         super().__init__(**data)
-        self._pixiv_client = PixivClientContext.get()
+        self._pixiv_client = get_pixiv_client()
 
     def __new__(cls, *args, **kwargs):
         cls.model_rebuild()
@@ -49,11 +47,11 @@ class PixivModel(PydanticBaseModel):
         return super(PixivModel, self).__hash__()
 
 
-def null_dict_validator(*fields: str) -> classmethod:
-    def v(cls, value: T) -> Optional[T]:
-        if value == {}:
-            return None
-        else:
-            return value
+def _validator(value: T) -> T | None:
+    if value == {}:
+        return None
+    else:
+        return value
 
-    return validator(*fields, pre=True, always=True, allow_reuse=True)(v)
+
+NullDictValidator = BeforeValidator(_validator)

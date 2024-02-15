@@ -10,6 +10,7 @@ from httpx import (
     Response as DefaultResponse,
     SyncByteStream,
 )
+from functools import lru_cache
 
 # noinspection PyProtectedMember
 from httpx._transports.default import (
@@ -18,7 +19,13 @@ from httpx._transports.default import (
     map_httpcore_exceptions,
 )
 
-from async_pixiv.error import ApiError, NotExist, RateLimit
+from async_pixiv.error import (
+    ApiError,
+    InvalidRefreshToken,
+    NotExist,
+    PixivError,
+    RateLimit,
+)
 
 try:
     from orjson import loads as json_loads
@@ -32,6 +39,7 @@ STATUS_ERROR_MAP = {
 }
 RESULT_ERROR_MAP = {
     "Rate Limit": RateLimit,
+    "invalid_grant": InvalidRefreshToken,
 }
 
 
@@ -49,10 +57,13 @@ class Response(DefaultResponse):
     # noinspection PyMethodMayBeStatic
     def raise_for_result(self) -> Self:
         if (json_data := self.json()) is not None:
-            if (error := json_data.get("error")) is not None and error:
+            if (errors := json_data.get("errors")) is not None and errors:
+                raise PixivError(errors)
+            elif (error := json_data.get("error")) is not None and error:
                 raise RESULT_ERROR_MAP.get(error["reason"], ApiError)(error)
         return self
 
+    @lru_cache(maxsize=8)
     def json(self, **kwargs: Any) -> dict[str, Any]:
         if self._json_data is None:
             self._json_data = json_loads(self.content, **kwargs)

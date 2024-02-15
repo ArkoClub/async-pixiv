@@ -6,7 +6,6 @@ from typing import (
     AsyncIterator,
     Generic,
     Iterator,
-    List,
     Optional,
     TypeVar,
 )
@@ -15,12 +14,9 @@ from pydantic import (
     AnyHttpUrl,
     Field,
 )
-from typing_extensions import Self
+from typing_extensions import Annotated, Self
 
-from async_pixiv.model._base import (
-    PixivModel,
-    null_dict_validator,
-)
+from async_pixiv.model._base import NullDictValidator, PixivModel
 from async_pixiv.model.illust import Comment, Illust, UgoiraMetadata
 from async_pixiv.model.novel import (
     Novel,
@@ -60,8 +56,8 @@ T = TypeVar("T")
 
 
 class PageResult(ABC, PixivModel, Generic[T]):
-    next_url: Optional[AnyHttpUrl]
-    search_span_limit: Optional[int]
+    next_url: AnyHttpUrl | None = None
+    search_span_limit: int | None = None
 
     @abstractmethod
     def __iter__(self) -> Iterator[T]:
@@ -87,19 +83,19 @@ class PageResult(ABC, PixivModel, Generic[T]):
 
 class UserPreview(PixivModel):
     user: User
-    illusts: List[Illust]
+    illusts: list[Illust]
     is_muted: bool
 
 
 class UserSearchResult(PageResult[UserPreview]):
-    users: List[UserPreview] = Field([], alias="user_previews")
+    user_previews: list[UserPreview] = Field([], alias="user_previews")
 
     def __iter__(self) -> Iterator[UserPreview]:
-        return iter(self.users)
+        return iter(self.user_previews)
 
 
 class UserIllustsResult(PageResult[Illust]):
-    illusts: List[Illust]
+    illusts: list[Illust]
 
     def __iter__(self) -> Iterator[Illust]:
         return iter(self.illusts)
@@ -110,7 +106,7 @@ class UserBookmarksIllustsResult(UserIllustsResult):
 
 
 class UserNovelsResult(PageResult[Novel]):
-    novels: List[Novel] = []
+    novels: list[Novel] = []
 
     def __iter__(self) -> Iterator[Novel]:
         return iter(self.novels)
@@ -124,7 +120,7 @@ class UserDetailResult(PixivModel):
 
 
 class UserRelatedResult(PixivModel):
-    users: List[UserPreview] = Field(alias="user_previews")
+    users: list[UserPreview] = Field(alias="user_previews")
 
     def __iter__(self) -> Iterator[UserPreview]:
         return iter(self.users)
@@ -140,9 +136,9 @@ class IllustDetailResult(PixivModel):
 
 class IllustCommentResult(PageResult[Comment]):
     total: int = Field(0, alias="total_comments")
-    comments: List[Comment] = []
-    next_url: Optional[AnyHttpUrl]
-    access_comment: Optional[bool] = Field(alias="comment_access_control")
+    comments: list[Comment] = []
+    next_url: AnyHttpUrl | None
+    access_comment: bool | None = Field(None, alias="comment_access_control")
 
     def __iter__(self) -> Iterator[Comment]:
         return iter(self.comments)
@@ -161,7 +157,7 @@ class UgoiraMetadataResult(PixivModel):
 
 
 class RecommendedResult(IllustSearchResult):
-    ranking_illusts: List[Illust]
+    ranking_illusts: list[Illust]
     contest_exists: bool
 
 
@@ -174,12 +170,12 @@ class NovelDetailResult(PixivModel):
 
 
 class NovelContentResult(PixivModel):
-    marker: Optional[NovelMaker] = Field(alias="novel_marker")
+    marker: Annotated[Optional[NovelMaker], NullDictValidator] = Field(
+        alias="novel_marker"
+    )
     content: str = Field(alias="novel_text")
-    previous: Optional[Novel] = Field(alias="series_prev")
-    next: Optional[Novel] = Field(alias="series_next")
-
-    _check = null_dict_validator("marker", "previous", "next")
+    previous: Annotated[Optional[Novel], NullDictValidator] = Field(alias="series_prev")
+    next: Annotated[Optional[Novel], NullDictValidator] = Field(alias="series_next")
 
     @property
     def text(self) -> str:

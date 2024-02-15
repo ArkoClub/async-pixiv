@@ -1,3 +1,4 @@
+from functools import cached_property
 from typing import Optional, TYPE_CHECKING
 
 from pydantic import EmailStr, Field, HttpUrl
@@ -24,9 +25,8 @@ class _User(PixivModel):
     id: int
     name: str
     account: str
-    mail_address: EmailStr
 
-    @property
+    @cached_property
     def link(self) -> URL:
         return URL(f"https://www.pixiv.net/users/{self.id}/")
 
@@ -43,8 +43,8 @@ class _User(PixivModel):
 
     async def illusts(
         self,
-        client: Optional["PixivClient"] = None,
         *,
+        client: Optional["PixivClient"] = None,
         for_ios: bool = True,
         offset: Optional[int] = None,
     ) -> "UserIllustsResult":
@@ -60,8 +60,8 @@ class _User(PixivModel):
 
     async def bookmarks(
         self,
-        client: Optional["PixivClient"] = None,
         *,
+        client: Optional["PixivClient"] = None,
         for_ios: bool = True,
         tag: Optional[str] = None,
         max_bookmark_id: Optional[int] = None,
@@ -79,8 +79,8 @@ class _User(PixivModel):
 
     async def novels(
         self,
-        client: Optional["PixivClient"] = None,
         *,
+        client: Optional["PixivClient"] = None,
         for_ios: bool = True,
         offset: int = None,
     ) -> "UserNovelsResult":
@@ -96,8 +96,8 @@ class _User(PixivModel):
 
     async def related(
         self,
-        client: Optional["PixivClient"] = None,
         *,
+        client: Optional["PixivClient"] = None,
         for_ios: bool = True,
         offset: Optional[int] = None,
     ) -> "UserRelatedResult":
@@ -165,12 +165,15 @@ class UserWorkSpace(PixivModel):
 
 
 class User(_User):
-    comment: str
+    comment: str | None = None
     is_followed: bool
+    is_access_blocking_user: bool | None = None
     profile_image_urls: ImageUrl
 
 
 class Account(_User):
+    mail_address: EmailStr
+    is_premium: bool
     restrict: ContentRestriction = Field(alias="x_restrict")
     profile_image_urls: ProfileImageUrl
     is_mail_authorized: bool

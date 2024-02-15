@@ -1,20 +1,12 @@
 from datetime import date
 from io import BytesIO
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Union
 
 from typing_extensions import Literal
 
-from async_pixiv.client._section._base import (
-    IllustType,
-    SearchDuration,
-    SearchFilter,
-    SearchShort,
-    SearchTarget,
-    V1_API,
-    V2_API,
-    _Section,
-)
+from async_pixiv.client._section._base import _Section
+from async_pixiv.const import V1_API, V2_API
 from async_pixiv.error import ArtWorkTypeError
 from async_pixiv.model.illust import IllustType
 from async_pixiv.model.result import (
@@ -26,64 +18,51 @@ from async_pixiv.model.result import (
     RecommendedResult,
     UgoiraMetadataResult,
 )
+from async_pixiv.typedefs import (
+    DurationTypes,
+    FilterTypes,
+    ShortTypes,
+    UGOIRA_RESULT_TYPE,
+)
 from async_pixiv.utils.context import set_pixiv_client
-from async_pixiv.utils.typedefs import UGOIRA_RESULT_TYPE
+from async_pixiv.utils.enums import SearchFilter, SearchShort
 
 __all__ = ("ILLUST",)
 
 
 # noinspection PyShadowingBuiltins
 class ILLUST(_Section):
-    async def follow(self, *, offset: Optional[int] = None) -> IllustSearchResult:
+    async def follow(self, *, offset: int | None = None) -> IllustSearchResult:
         data = (
-            await self._client.get(
+            await self._pixiv_client.get(
                 V2_API / "illust/follow",
                 params={"restrict": "public", "offset": offset},
             )
         ).json()
-        with set_pixiv_client(self._client):
-            return IllustSearchResult.parse_obj(data)
+        with set_pixiv_client(self._pixiv_client):
+            return IllustSearchResult.model_validate(data)
 
     async def search(
         self,
-        word: str,
+        words: str | Sequence[str],
         *,
-        sort: Union[
-            Literal["date_desc", "date_asc", "popular_desc", "popular_asc"], SearchShort
-        ] = SearchShort.date_desc,
-        target: Union[
-            SearchTarget,
-            Literal[
-                "partial_match_for_tags", "keyword", "exact_match_for_tags", "text"
-            ],
-        ] = SearchTarget.partial,
-        duration: Optional[
-            Union[
-                Literal[
-                    "within_last_day",
-                    "within_last_week",
-                    "within_last_month",
-                    "within_last_year",
-                ],
-                SearchDuration,
-            ]
-        ] = None,
-        filter: Optional[
-            Union[Literal["for_android", "for_ios"], SearchFilter]
-        ] = SearchFilter.ios,
-        offset: Optional[int] = None,
-        min_bookmarks: Optional[int] = None,
-        max_bookmarks: Optional[int] = None,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
+        sort: ShortTypes = SearchShort.DateDecrease,
+        duration: DurationTypes | None = None,
+        target: ShortTypes | None = None,
+        filter: FilterTypes | None = SearchFilter.ios,
+        offset: int | None = None,
+        min_bookmarks: int | None = None,
+        max_bookmarks: int | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
         **kwargs,
     ) -> IllustSearchResult:
         if start_date is not None:
             start_date = start_date.strftime("%Y-%m-%d")
         if end_date is not None:
             end_date = end_date.strftime("%Y-%m-%d")
-        data = await super(ILLUST, self).search(
-            word=word,
+        data = await self._search(
+            words=words,
             sort=sort,
             duration=duration,
             filter=filter,
@@ -93,9 +72,10 @@ class ILLUST(_Section):
             target=target,
             start_date=start_date,
             end_date=end_date,
+            **kwargs,
         )
-        with set_pixiv_client(self._client):
-            return IllustSearchResult.parse_obj(data)
+        with set_pixiv_client(self._pixiv_client):
+            return IllustSearchResult.model_validate(data)
 
     async def detail(
         self,
@@ -105,20 +85,20 @@ class ILLUST(_Section):
             Union[Literal["for_android", "for_ios"], SearchFilter]
         ] = SearchFilter.ios,
     ) -> IllustDetailResult:
-        data = await super(ILLUST, self).detail(id, filter=filter)
-        with set_pixiv_client(self._client):
+        data = await self._detail(id, filter=filter)
+        with set_pixiv_client(self._pixiv_client):
             return IllustDetailResult.model_validate(data)
 
     async def comments(
-        self, id: int, *, offset: Optional[int] = None
+        self, id: int, *, offset: int | None = None
     ) -> IllustCommentResult:
         data = (
-            await self._client.get(
+            await self._pixiv_client.get(
                 V1_API / "illust/comments", params={"illust_id": id, "offset": offset}
             )
         ).json()
-        with set_pixiv_client(self._client):
-            return IllustCommentResult.parse_obj(data)
+        with set_pixiv_client(self._pixiv_client):
+            return IllustCommentResult.model_validate(data)
 
     async def related(
         self,
@@ -127,12 +107,12 @@ class ILLUST(_Section):
         filter: Optional[
             Union[Literal["for_android", "for_ios"], SearchFilter]
         ] = SearchFilter.ios,
-        offset: Optional[int] = None,
+        offset: int | None = None,
         seed_ids: Optional[Union[List[int], int]] = None,
     ) -> IllustRelatedResult:
         # noinspection PyTypeChecker
         data = (
-            await self._client.get(
+            await self._pixiv_client.get(
                 V2_API / "illust/related",
                 params={
                     "illust_id": id,
@@ -144,8 +124,8 @@ class ILLUST(_Section):
                 },
             )
         ).json()
-        with set_pixiv_client(self._client):
-            return IllustRelatedResult.parse_obj(data)
+        with set_pixiv_client(self._pixiv_client):
+            return IllustRelatedResult.model_validate(data)
 
     async def recommended(
         self,
@@ -156,19 +136,19 @@ class ILLUST(_Section):
         ] = IllustType.illust,
         include_ranking_label: bool = True,
         include_ranking_illusts: Optional[bool] = None,
-        offset: Optional[int] = None,
+        offset: int | None = None,
         filter: Optional[
             Union[Literal["for_android", "for_ios"], SearchFilter]
         ] = SearchFilter.ios,
-        max_bookmark_id_for_recommend: Optional[int] = None,
-        min_bookmark_id_for_recent_illust: Optional[int] = None,
+        max_bookmark_id_for_recommend: int | None = None,
+        min_bookmark_id_for_recent_illust: int | None = None,
         bookmark_illust_ids: Optional[Union[List[int], int]] = None,
         include_privacy_policy: Optional[Union[str, List[Union[int, str]]]] = None,
         viewed: Optional[List[int]] = None,
     ) -> RecommendedResult:
         # noinspection SpellCheckingInspection
         data = (
-            await self._client.get(
+            await self._pixiv_client.get(
                 V1_API
                 / ("illust/recommended" if with_auth else "illust/recommended-nologin"),
                 params={
@@ -185,8 +165,8 @@ class ILLUST(_Section):
                 },
             )
         ).json()
-        with set_pixiv_client(self._client):
-            return RecommendedResult.parse_obj(data)
+        with set_pixiv_client(self._pixiv_client):
+            return RecommendedResult.model_validate(data)
 
     async def new_illusts(
         self,
@@ -195,10 +175,10 @@ class ILLUST(_Section):
         filter: Optional[
             Union[Literal["for_android", "for_ios"], SearchFilter]
         ] = SearchFilter.ios,
-        max_illust_id: Optional[int] = None,
+        max_illust_id: int | None = None,
     ) -> IllustNewResult:
         data = (
-            await self._client.get(
+            await self._pixiv_client.get(
                 V1_API / "illust/new",
                 params={
                     "content_type": type,
@@ -207,15 +187,17 @@ class ILLUST(_Section):
                 },
             )
         ).json()
-        with set_pixiv_client(self._client):
-            return IllustNewResult.parse_obj(data)
+        with set_pixiv_client(self._pixiv_client):
+            return IllustNewResult.model_validate(data)
 
     async def ugoira_metadata(self, id: int) -> UgoiraMetadataResult:
         data = (
-            await self._client.get(V1_API / "ugoira/metadata", params={"illust_id": id})
+            await self._pixiv_client.get(
+                V1_API / "ugoira/metadata", params={"illust_id": id}
+            )
         ).json()
-        with set_pixiv_client(self._client):
-            return UgoiraMetadataResult.parse_obj(data)
+        with set_pixiv_client(self._pixiv_client):
+            return UgoiraMetadataResult.model_validate(data)
 
     async def download(
         self,
@@ -235,7 +217,7 @@ class ILLUST(_Section):
             )
         if not full or not artwork.meta_pages:
             return [
-                await self._client.download(
+                await self._pixiv_client.download(
                     str(
                         artwork.meta_single_page.original
                         or artwork.image_urls.original
@@ -248,7 +230,7 @@ class ILLUST(_Section):
             result: List[bytes] = []
             for meta_page in artwork.meta_pages:
                 result.append(
-                    await self._client.download(
+                    await self._pixiv_client.download(
                         str(
                             meta_page.image_urls.original or meta_page.image_urls.large
                         ),

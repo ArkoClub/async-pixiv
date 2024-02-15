@@ -5,6 +5,11 @@ if TYPE_CHECKING:
 
 
 class PixivError(Exception):
+    message: str = ""
+
+    def __init__(self, message: str) -> None:
+        self.message = message
+
     def __init_subclass__(cls, **kwargs) -> None:
         cls.__module__ = "async_pixiv.error"
 
@@ -18,6 +23,10 @@ class LoginError(PixivError):
 
 class OauthError(PixivError):
     pass
+
+
+class InvalidRefreshToken(OauthError):
+    message = "错误的 Refresh Token "
 
 
 class ArtWorkTypeError(PixivError, TypeError):
@@ -36,7 +45,6 @@ class StatusError(PixivError):
 
 class ApiError(PixivError):
     user_message: str = ""
-    message: str = ""
     reason: str = ""
     user_message_details: str = ""
 

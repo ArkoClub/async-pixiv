@@ -6,7 +6,7 @@ from typing import Any, Coroutine, Dict, List, Optional, TYPE_CHECKING
 
 from pyee import EventEmitter
 
-from async_pixiv.utils.const import IS_WINDOWS
+from async_pixiv.const import IS_WINDOWS
 from async_pixiv.utils.ffmpeg.typing import Option
 from async_pixiv.utils.ffmpeg.utils import build_options, parse_progress, read_lines
 

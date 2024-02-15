@@ -26,10 +26,10 @@ class SearchTarget(Enum):
 
 
 class SearchShort(Enum):
-    date_desc = "date_desc"
-    date_asc = "date_asc"
-    popular_desc = "popular_desc"
-    popular_asc = "popular_asc"
+    DateDecrease = "date_desc"
+    DateIncrements = "date_asc"
+    PopularDecrease = "popular_desc"
+    PopularIncrements = "popular_asc"
 
 
 class SearchDuration(Enum):

@@ -10,12 +10,10 @@ from pydantic import (
     PrivateAttr,
 )
 from requests import HTTPError
+from typing_extensions import Annotated
 from yarl import URL
 
-from async_pixiv.model._base import (
-    PixivModel,
-    null_dict_validator,
-)
+from async_pixiv.model._base import NullDictValidator, PixivModel
 from async_pixiv.model.other import (
     AIType,
     ImageUrl,
@@ -54,7 +52,7 @@ class Novel(PixivModel):
     page_count: int
     text_length: int
     user: User
-    series: Optional[Series]
+    series: Annotated[Optional[Series], NullDictValidator]
     is_bookmarked: bool
     total_bookmarks: int
     total_view: int
@@ -66,7 +64,6 @@ class Novel(PixivModel):
     comment_access_control: Optional[int]
     ai_type: AIType = Field(alias="novel_ai_type")
 
-    _check = null_dict_validator("series")
     _is_r18: Optional[bool] = PrivateAttr(None)
     _lang: Optional[str] = PrivateAttr(None)
 

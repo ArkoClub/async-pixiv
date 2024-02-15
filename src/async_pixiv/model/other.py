@@ -2,10 +2,11 @@ from enum import IntEnum
 from functools import cached_property
 from typing import Optional, TYPE_CHECKING
 
-from pydantic import Field, HttpUrl
+from pydantic import Field
 from yarl import URL
 
 from async_pixiv.model._base import PixivModel
+from async_pixiv.typedefs import Url
 
 if TYPE_CHECKING:
     from async_pixiv import PixivClient
@@ -38,23 +39,23 @@ class Series(PixivModel):
 
 
 class ImageUrl(PixivModel):
-    square_medium: Optional[HttpUrl]
-    medium: Optional[HttpUrl]
-    large: Optional[HttpUrl]
-    original: Optional[HttpUrl]
+    square_medium: Optional[Url] = None
+    medium: Optional[Url] = None
+    large: Optional[Url] = None
+    original: Optional[Url] = None
 
     @property
-    def link(self) -> HttpUrl:
+    def link(self) -> Url:
         return self.original or self.large or self.medium or self.square_medium
 
 
 class ProfileImageUrl(PixivModel):
-    small: HttpUrl | None = Field(None, alias="px_16x16")
-    medium: HttpUrl | None = Field(None, alias="px_50x50")
-    large: HttpUrl | None = Field(None, alias="px_170x170")
+    small: Optional[Url] = Field(None, alias="px_16x16")
+    medium: Optional[Url] = Field(None, alias="px_50x50")
+    large: Optional[Url] = Field(None, alias="px_170x170")
 
     @cached_property
-    def original(self) -> HttpUrl | None:
+    def original(self) -> Optional[Url]:
         url = self.small or self.medium or self.large
         return URL(
             "_".join((string_list := url.split("_"))[:-1])
