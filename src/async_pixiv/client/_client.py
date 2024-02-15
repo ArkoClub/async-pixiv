@@ -167,7 +167,7 @@ class PixivClient(Net, _PixivClientSections, metaclass=Singleton):
             from playwright.async_api import async_playwright
 
             # noinspection PyProtectedMember
-            from playwright._impl._errors import TimeoutError
+            from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
 
         except ImportError:
             raise ImportError("Please install 'playwright'.")
@@ -224,12 +224,15 @@ class PixivClient(Net, _PixivClientSections, metaclass=Singleton):
         await page.locator('input[autocomplete="username"]').fill(username)
         await page.locator('input[type="password"]').fill(password)
 
-        submit_button = page.locator("form").nth(0).locator("button[type='submit']")
+        submit_button = page.locator("form:has(fieldset) button[type='submit']")
 
         # 验证登录
-        async with page.expect_response(_LOGIN_VERIFY + "*") as future_response:
-            await submit_button.click()
-            response = await (await future_response.value).json()
+        try:
+            async with page.expect_response(_LOGIN_VERIFY + "*") as future_response:
+                await submit_button.click()
+                response = await (await future_response.value).json()
+        except PlaywrightTimeoutError:
+            raise TimeoutError("登录超时")
 
         await raise_errors(response)
 
@@ -252,7 +255,7 @@ class PixivClient(Net, _PixivClientSections, metaclass=Singleton):
                         await submit_button.click()
                         response = await (await future.value).json()
                     await raise_errors(response)
-                except TimeoutError:
+                except PlaywrightTimeoutError:
                     logger.debug("两步验证成功")
                 url = urlparse((await request.value).url)
         else:
