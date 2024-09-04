@@ -1,12 +1,19 @@
 from async_pixiv.typedefs import Enum
+import enum
 
 __all__ = (
+    "Quality",
     "SearchTarget",
     "SearchShort",
     "SearchDuration",
     "SearchFilter",
 )
 
+class  Quality(Enum):
+    Square = enum.auto()
+    Medium = enum.auto()
+    Large = enum.auto()
+    Original = enum.auto()
 
 class SearchTarget(Enum):
     TAGS_PARTIAL = "partial_match_for_tags"  # 标签部分一致

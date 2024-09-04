@@ -1,5 +1,7 @@
 from async_pixiv.model._base import PixivModel
 
+__all__ = ("Tag", "TagTranslation")
+
 
 class Tag(PixivModel):
     name: str

@@ -1,11 +1,12 @@
 from abc import ABC
 from typing import AsyncIterator, Iterator, Self
 
+from pydantic import Field
+
 from async_pixiv.model._base import PixivModel
+from async_pixiv.model.other.image import QualityUrl
 from async_pixiv.typedefs import URL
 from async_pixiv.utils.context import set_pixiv_client
-
-__all__ = ("PageResult",)
 
 
 class PageResult[T](ABC, PixivModel):
@@ -30,3 +31,15 @@ class PageResult[T](ABC, PixivModel):
             for result in next_results:
                 yield result
             next_results = await next_results.next()
+
+class UgoiraFrameMetadata(PixivModel):
+        file: str
+        delay: int
+
+
+class UgoiraMetadata(PixivModel):
+    zip_url: QualityUrl = Field(alias="zip_urls")
+    frames: list[UgoiraFrameMetadata]
+
+class UgoiraMetadataResult(PixivModel):
+    metadata: UgoiraMetadata = Field(alias="ugoira_metadata")

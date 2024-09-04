@@ -3,7 +3,7 @@ from typing import Sequence
 from async_pixiv.client.api._abc import APIBase
 from async_pixiv.model import Illust, PixivModel
 from async_pixiv.model.other.enums import SearchShort, SearchTarget
-from async_pixiv.model.other.result import PageResult
+from async_pixiv.model.other.result import PageResult, UgoiraMetadataResult
 from async_pixiv.typedefs import DurationTypes, ShortTypes
 
 __all__ = ("IllustAPI", "IllustPageResult", "IllustDetail")
@@ -33,4 +33,7 @@ class IllustAPI(APIBase):
         pass
 
     async def recommended(self) -> IllustPageResult:
+        pass
+
+    async def ugoira_metadata(self, id: int) -> UgoiraMetadataResult:
         pass
