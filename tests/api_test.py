@@ -47,7 +47,7 @@ class TestLogin:
             PIXIV_SECRET,
             proxy=os.environ.get("HTTP_PROXY"),
         )
-        assert account.name
+        assert account.name == "Karako"
         logger.info(f"password login with {account.name}")
 
     async def test_login_with_token(self, client: PixivClient):

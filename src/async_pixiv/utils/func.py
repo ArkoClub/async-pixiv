@@ -6,7 +6,7 @@ from typing import (
 
 from yarl import URL
 
-__all__ = ["proxies_from_env", "oauth_pkce"]
+__all__ = ("proxies_from_env", "oauth_pkce")
 
 T_Wrapped = TypeVar("T_Wrapped", bound=Callable)
 

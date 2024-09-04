@@ -1,10 +1,6 @@
-from enum import Enum as BaseEnum
-
-from typing import TypeVar, Union
+from async_pixiv.typedefs import Enum
 
 __all__ = (
-    "Enum",
-    "EnumType",
     "SearchTarget",
     "SearchShort",
     "SearchDuration",
@@ -12,15 +8,10 @@ __all__ = (
 )
 
 
-class Enum(BaseEnum):
-    def __str__(self) -> str:
-        # noinspection PyTypeChecker
-        return self.value
-
-
 class SearchTarget(Enum):
-    partial = "partial_match_for_tags"  # 标签部分一致
-    full = "exact_match_for_tags"  # 标签完全一致
+    TAGS_PARTIAL = "partial_match_for_tags"  # 标签部分一致
+    TAGS_EXACT = "exact_match_for_tags"  # 标签完全一致
+    TITLE_AND_CAPTION = "title_and_caption"
     text = "text"  # 正文
     keyword = "keyword"  # 关键词
 
@@ -40,8 +31,5 @@ class SearchDuration(Enum):
 
 
 class SearchFilter(Enum):
-    android = "for_android"
-    ios = "for_ios"
-
-
-EnumType = TypeVar("EnumType", bound=Union[Enum, BaseEnum])
+    ANDROID = "for_android"
+    IOS = "for_ios"

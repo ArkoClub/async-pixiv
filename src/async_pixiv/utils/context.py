@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
-from typing import Optional, TYPE_CHECKING
+from typing import Iterator, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
+    from pytz.tzinfo import DstTzInfo
 
 __all__ = (
     "no_warning",
@@ -12,13 +13,17 @@ __all__ = (
     "PixivClientContext",
     "set_pixiv_client",
     "get_pixiv_client",
+    "TimezoneContext",
+    "set_timezone",
+    "get_timezone",
 )
 
 PixivClientContext: ContextVar["PixivClient"] = ContextVar("PixivClientContext")
+TimezoneContext: ContextVar["DstTzInfo"] = ContextVar("timezone")
 
 
 @contextmanager
-def do_nothing() -> None:
+def do_nothing() -> Iterator[None]:
     try:
         yield
     finally:
@@ -26,7 +31,7 @@ def do_nothing() -> None:
 
 
 @asynccontextmanager
-def async_do_nothing() -> None:
+def async_do_nothing() -> Iterator[None]:
     try:
         yield
     finally:
@@ -34,7 +39,7 @@ def async_do_nothing() -> None:
 
 
 @contextmanager
-def no_warning() -> None:
+def no_warning() -> Iterator[None]:
     import warnings
     from copy import deepcopy
 
@@ -50,7 +55,7 @@ def no_warning() -> None:
 
 
 @contextmanager
-def set_pixiv_client(client: "PixivClient") -> "PixivClient":
+def set_pixiv_client(client: "PixivClient") -> Iterator["PixivClient"]:
     token = PixivClientContext.set(client)
     try:
         yield client
@@ -62,7 +67,26 @@ def get_pixiv_client(raise_error: bool = False) -> Optional["PixivClient"]:
     try:
         return PixivClientContext.get()
     except LookupError:
+        from async_pixiv.error import ClientNotFindError
+
         if not raise_error:
             return None
         else:
-            raise LookupError("You should set your Pixiv client first.")
+            raise ClientNotFindError()
+
+
+@contextmanager
+def set_timezone(timezone: "DstTzInfo") -> Iterator["DstTzInfo"]:
+    token = TimezoneContext.set(timezone)
+    try:
+        yield timezone
+    finally:
+        TimezoneContext.reset(token)
+
+
+def get_timezone(raise_error: bool = False) -> Optional["DstTzInfo"]:
+    try:
+        return TimezoneContext.get()
+    except LookupError as e:
+        if raise_error:
+            raise e

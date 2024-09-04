@@ -7,14 +7,18 @@ if TYPE_CHECKING:
 class PixivError(Exception):
     message: str = ""
 
-    def __init__(self, message: str) -> None:
-        self.message = message
+    def __init__(self, message: str | None = None) -> None:
+        self.message = message or self.message
 
     def __init_subclass__(cls, **kwargs) -> None:
         cls.__module__ = "async_pixiv.error"
 
     def __eq__(self, other: Exception) -> bool:
         return self == other
+
+
+class ClientNotFindError(PixivError):
+    message = "Could not find an instantiated client."
 
 
 class LoginError(PixivError):
@@ -38,6 +42,17 @@ class StatusError(PixivError):
 
     def __init__(self, response: "Response") -> None:
         self.response = response
+        try:
+            response_json = response.json()
+        except:
+            response_json = None
+
+        if response_json is not None:
+            self.reason = (
+                response_json["error"]["message"]
+                or response_json["error"]["reason"]
+                or response_json["error"]["user_message"]
+            )
 
     def __str__(self) -> str:
         return self.reason or self.response

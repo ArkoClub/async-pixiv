@@ -1,39 +1,38 @@
-from typing import Any, Optional, TYPE_CHECKING, TypeVar
+from typing import Any, Optional, Self, TYPE_CHECKING
 
 from pydantic import (
-    BaseModel as PydanticBaseModel,
+    BaseModel,
+    BeforeValidator,
     ConfigDict,
     PrivateAttr,
+    field_validator,
 )
-from pydantic.functional_validators import BeforeValidator
 
-from async_pixiv.utils.context import get_pixiv_client
+from async_pixiv.utils.context import get_pixiv_client, set_pixiv_client
 
 if TYPE_CHECKING:
-    from async_pixiv.client import PixivClient
+    from async_pixiv import PixivClient
 
-    Model = TypeVar("Model", bound="BaseModel")
-
-__all__ = ["PixivModel", "PixivModelConfig", "NullDictValidator"]
-
-T = TypeVar("T")
+__all__ = ("PixivModel", "NullDictValidator")
 
 
-PixivModelConfig = ConfigDict(validate_default=True, validate_assignment=True)
-
-
-class PixivModel(PydanticBaseModel):
-    model_config = PixivModelConfig
-
+# noinspection Pydantic
+class PixivModel(BaseModel):
+    model_config = ConfigDict(validate_default=True, validate_assignment=True)
     _pixiv_client: Optional["PixivClient"] = PrivateAttr(None)
 
-    def __init__(self, **data: Any):
-        super().__init__(**data)
-        self._pixiv_client = get_pixiv_client()
-
-    def __new__(cls, *args, **kwargs):
+    @classmethod
+    def model_validate(cls, *args, **kwargs) -> Self:
         cls.model_rebuild()
-        return super(PixivModel, cls).__new__(cls)
+        return super().model_validate(*args, **kwargs)
+
+    def __init__(
+        self, _pixiv_client: Optional["PixivClient"] = None, **data: Any
+    ) -> None:
+        pixiv_client = _pixiv_client or get_pixiv_client()
+        with set_pixiv_client(pixiv_client):
+            super().__init__(**data)
+        self._pixiv_client = pixiv_client
 
     def __str__(self) -> str:
         if hasattr(self, "id"):
@@ -46,8 +45,13 @@ class PixivModel(PydanticBaseModel):
             return hash((self.__class__.__name__, self.id))
         return super(PixivModel, self).__hash__()
 
+    @field_validator("*", mode="before")
+    @classmethod
+    def string_validator(cls, value: Any) -> str:
+        return None if value == {} or value == "" else value
 
-def _validator(value: T) -> T | None:
+
+def _validator[T](value: T) -> T | None:
     if value == {}:
         return None
     else:

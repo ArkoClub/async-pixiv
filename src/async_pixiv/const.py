@@ -2,12 +2,13 @@ import sys
 
 from yarl import URL
 
-__all__ = ("IS_WINDOWS", "AJAX_HOST", "API_HOST", "V1_API", "V2_API")
+__all__ = (
+    "APP_API_HOST",
+    "WEB_API_HOST",
+    "IS_WINDOWS",
+)
 
-
-API_HOST = URL("https://app-api.pixiv.net")
-AJAX_HOST = URL("https://www.pixiv.net/ajax")
-V1_API = API_HOST / "v1"
-V2_API = API_HOST / "v2"
+APP_API_HOST = URL("https://app-api.pixiv.net/")
+WEB_API_HOST = URL("https://www.pixiv.net/ajax/")
 
 IS_WINDOWS = sys.platform == "win32"

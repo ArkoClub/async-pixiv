@@ -1,10 +1,22 @@
+from datetime import datetime
+from enum import Enum as BaseEnum
 from functools import cached_property, lru_cache
-from typing import Annotated, Literal, Optional, Protocol, Self, TYPE_CHECKING, Union
+from typing import (
+    Annotated,
+    Literal,
+    Optional,
+    Protocol,
+    Self,
+    TYPE_CHECKING,
+    TypeVar,
+    Union,
+)
 
-from pydantic import PlainValidator
+import tzlocal
+from pydantic import AfterValidator, PlainValidator
 from yarl import URL as _URL
 
-from async_pixiv.utils.context import get_pixiv_client
+from async_pixiv.utils.context import get_timezone
 from async_pixiv.utils.magic import curses
 
 __all__ = (
@@ -15,9 +27,11 @@ __all__ = (
     "IllustTypes",
     "StrPath",
     "UGOIRA_RESULT_TYPE",
-    "Url",
+    "URL",
+    "Enum",
+    "EnumType",
+    "Datetime",
 )
-
 
 if TYPE_CHECKING:
     from io import BytesIO
@@ -25,7 +39,7 @@ if TYPE_CHECKING:
 
     from async_pixiv.model.illust import IllustType
 
-    from async_pixiv.utils.enums import (
+    from async_pixiv.model.other.enums import (
         SearchDuration,
         SearchFilter,
         SearchShort,
@@ -83,21 +97,40 @@ UGOIRA_RESULT_TYPE = Literal["zip", "jpg", "iter", "gif", "mp4"]
 NotImplementedType = type(NotImplemented)
 
 
+class Enum(BaseEnum):
+    def __str__(self) -> str:
+        # noinspection PyTypeChecker
+        return self.value
+
+
+EnumType = TypeVar("EnumType", bound=Union[Enum, BaseEnum])
+
+
+def _datetime_validator(value: datetime) -> datetime:
+    return value.astimezone(get_timezone() or tzlocal.get_localzone())
+
+
+Datetime = Annotated[datetime, AfterValidator(_datetime_validator)]
+
+
 @curses(_URL)
 async def download(
     self: _URL,
+    method: Literal["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"] = "GET",
     *,
-    output: Optional[Union[str, "Path", "BytesIO"]] = None,
-    chunk_size: Optional[int] = None,
-    client: Optional["PixivClient"] = None,
+    output: Union[StrPath, "BytesIO", None] = None,
+    chunk_size: int | None = None,
+    client: "PixivClient" = None,
 ) -> bytes:
     if client is None:
+        from async_pixiv.utils.context import get_pixiv_client
+
         client = get_pixiv_client()
-    return await client.download(self, output=output, chunk_size=chunk_size)
+    return await client.download(self, method, output=output, chunk_size=chunk_size)
 
 
 # noinspection PyPropertyDefinition
-class URL(Protocol):
+class URL_Protocol(Protocol):  # NOSONAR
     @classmethod
     def build(
         cls,
@@ -117,11 +150,12 @@ class URL(Protocol):
 
     async def download(
         self,
+        method: Literal["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"] = "GET",
         *,
-        output: Optional[Union[str, "Path", "BytesIO"]] = None,
-        chunk_size: Optional[int] = None,
+        output: Union[StrPath, "BytesIO"] | None = None,
+        chunk_size: int | None = None,
         client: Optional["PixivClient"] = None,
-    ) -> bytes: ...
+    ) -> Union["Path", bytes, "BytesIO"]: ...
 
     def __str__(self) -> bytes: ...
     def __repr__(self) -> str: ...
@@ -237,4 +271,4 @@ def _url_validator(value) -> _URL:
         return _URL(str(value))
 
 
-Url = Annotated[URL, PlainValidator(_url_validator)]
+URL = Annotated[URL_Protocol, PlainValidator(_url_validator)]
