@@ -22,6 +22,7 @@ from async_pixiv.utils.ffmpeg import FFmpeg
 
 UGOIRA_RESULT_TYPE = Literal["zip", "gif", "mp4", "frame"]
 
+
 class IllustType(Enum):
     illust = "illust"
     ugoira = "ugoira"
@@ -88,23 +89,55 @@ class Illust(PixivModel):
         return (await self._pixiv_client.ILLUST.ugoira_metadata(self.id)).metadata
 
     @overload
-    async def download_ugoira(self, quality: Quality = Quality.Original,*, result_type: Literal["zip"] = "zip") -> bytes | None:
+    async def download_ugoira(
+        self,
+        quality: Quality = Quality.Original,
+        *,
+        result_type: Literal["zip"] = "zip",
+    ) -> bytes | None:
         """type of zip"""
 
     @overload
-    async def download_ugoira(self, quality: Quality = Quality.Original,*, result_type: Literal["frame"] = "frame") -> list[bytes] | None:
+    async def download_ugoira(
+        self,
+        quality: Quality = Quality.Original,
+        *,
+        result_type: Literal["frame"] = "frame",
+    ) -> list[bytes] | None:
         """type of frame"""
 
     @overload
-    async def download_ugoira(self, quality: Quality = Quality.Original,*, result_type: Literal["gif"] = "gif") -> bytes | None:
+    async def download_ugoira(
+        self,
+        quality: Quality = Quality.Original,
+        *,
+        result_type: Literal["gif"] = "gif",
+    ) -> bytes | None:
         """type of GIF"""
 
     @overload
-    async def download_ugoira(self, quality: Quality = Quality.Original,*, result_type: Literal["mp4"] = "mp4") -> bytes | None:
+    async def download_ugoira(
+        self,
+        quality: Quality = Quality.Original,
+        *,
+        result_type: Literal["mp4"] = "mp4",
+    ) -> bytes | None:
+        """type of mp4"""
+
+    @overload
+    async def download_ugoira(
+        self,
+        quality: Quality = Quality.Original,
+        *,
+        result_type: UGOIRA_RESULT_TYPE | str = "zip",
+    ) -> bytes | list[bytes] | None:
         """type of mp4"""
 
     async def download_ugoira(
-        self, quality: Quality = Quality.Original,*, result_type: UGOIRA_RESULT_TYPE = "zip"
+        self,
+        quality: Quality = Quality.Original,
+        *,
+        result_type: UGOIRA_RESULT_TYPE = "zip",
     ) -> bytes | list[bytes] | None:
         if self.type != IllustType.ugoira:
             raise ArtWorkTypeError(
@@ -116,7 +149,11 @@ class Illust(PixivModel):
 
         match quality:
             case Quality.Large:
-                link = metadata.zip_url.large or metadata.zip_url.medium or metadata.zip_url.square
+                link = (
+                    metadata.zip_url.large
+                    or metadata.zip_url.medium
+                    or metadata.zip_url.square
+                )
             case Quality.Medium:
                 link = metadata.zip_url.medium or metadata.zip_url.square
             case Quality.Square:
@@ -182,7 +219,7 @@ class Illust(PixivModel):
                     .option("shortest")
                     .output(str(output_path))
                 )
-            else: # gif
+            else:  # gif
                 output_path = directory / "out.gif"
                 ffmpeg = (
                     FFmpeg()

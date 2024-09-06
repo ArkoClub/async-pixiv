@@ -40,7 +40,7 @@ class IllustAPI(APIBase):
     # noinspection PyShadowingBuiltins
     async def ugoira_metadata(self, id: int) -> UgoiraMetadataResult:
         response = await self._pixiv_client.request_get(
-                APP_API_HOST / "v1/ugoira/metadata", params={"illust_id": id}
+            APP_API_HOST / "v1/ugoira/metadata", params={"illust_id": id}
         )
         response.raise_for_result().raise_for_status()
         with set_pixiv_client(self._pixiv_client):
