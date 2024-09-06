@@ -20,6 +20,9 @@ class IllustAPI(APIBase):
     async def __call__(self, id: int) -> IllustDetail:
         pass
 
+    async def detail(self, id: int) -> IllustDetail:
+        pass
+
     async def search(
         self,
         words: str | Sequence[str],
