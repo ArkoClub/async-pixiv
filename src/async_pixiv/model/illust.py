@@ -59,7 +59,7 @@ class Illust(PixivModel):
     caption: str | None = None
     restrict: int
     user: User
-    tags: list[Tag] = Field()
+    tags: list[Tag] = []
     tools: list[str]
     create_date: Datetime
     page_count: int

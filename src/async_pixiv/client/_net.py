@@ -1,14 +1,15 @@
+from functools import lru_cache
 from logging import getLogger
 
 from httpx import (
     AsyncBaseTransport,
-    AsyncClient as DefaultAsyncClient,
     QueryParams,
     Request,
+    AsyncClient as DefaultAsyncClient,
 )
 
 # noinspection PyProtectedMember
-from httpx._client import ClientState, USE_CLIENT_DEFAULT, UseClientDefault
+from httpx._client import USE_CLIENT_DEFAULT, ClientState, UseClientDefault
 
 # noinspection PyProtectedMember
 from httpx._types import (
@@ -16,7 +17,6 @@ from httpx._types import (
     ProxyTypes,
     QueryParamTypes,
     TimeoutTypes,
-    URLTypes,
 )
 
 # noinspection PyProtectedMember
@@ -26,17 +26,13 @@ from yarl import URL
 from async_pixiv.client._response import Response
 from async_pixiv.client._transport import AsyncHTTPTransport, BypassAsyncHTTPTransport
 from async_pixiv.error import RateLimitError
+from async_pixiv.typedefs import UrlType
 from async_pixiv.utils.rate_limiter import RateLimiter
 
 try:
     from orjson import loads as default_json_loads
 except ImportError:
     from json import loads as default_json_loads
-
-try:
-    import regex as re
-except ImportError:
-    import re
 
 __all__ = (
     "AsyncClient",
@@ -92,7 +88,9 @@ class AsyncClient(DefaultAsyncClient):
         proxy_map = self._get_proxy_map(proxy, trust_env)
 
         # noinspection PyPep8Naming
-        TransportType = BypassAsyncHTTPTransport if bypass else AsyncHTTPTransport
+        TransportType = (  # NOSONAR
+            BypassAsyncHTTPTransport if bypass else AsyncHTTPTransport
+        )
 
         self._transport = TransportType(
             trust_env=trust_env, json_loads=self._json_loads
@@ -172,19 +170,41 @@ class AsyncClient(DefaultAsyncClient):
         if error is not None:
             raise error
 
+    @lru_cache(64)
+    def _merge_url(self, url):
+        return str(
+            super(AsyncClient, self)._merge_url(
+                url if isinstance(url, str) else str(url)
+            )
+        )
+
     def build_request(
         self,
         method: str,
-        url: URLTypes | URL,
+        url: URL | UrlType | str,
         *,
+        params: QueryParamTypes | None = None,
         headers: HeaderTypes | None = None,
         **kwargs,
     ) -> Request:
-        return super().build_request(
-            method,
-            str(url) if isinstance(url, URL) else url,
-            headers=dict(filter(lambda x: x[1], (headers or {}).items())),
-            **kwargs,
+        from httpx import URL as httpx_URL
+
+        str_url = str(url)
+        if isinstance(url, URL):
+            yarl_url = url
+            httpx_url = httpx_URL(str_url)
+        elif isinstance(url, httpx_URL):
+            httpx_url = url
+            yarl_url = httpx_URL(str_url)
+        else:
+            httpx_url = httpx_URL(str_url)
+            yarl_url = URL(str_url)
+
+        headers = dict(filter(lambda x: x[1], (headers or {}).items()))
+        # noinspection PyProtectedMember
+        params = self._merge_queryparams(params).merge(yarl_url._parsed_query)
+        return super(AsyncClient, self).build_request(
+            method, httpx_url, headers=headers, params=params, **kwargs
         )
 
     # noinspection SpellCheckingInspection

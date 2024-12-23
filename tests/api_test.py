@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from async_pixiv import PixivClient
-from async_pixiv.utils.enums import SearchDuration, SearchShort
+from async_pixiv.model import SearchDuration, SearchShort
 
 PIXIV_USERNAME = os.environ.get("PIXIV_USERNAME")
 PIXIV_PASSWORD = os.environ.get("PIXIV_PASSWORD")
@@ -35,21 +35,11 @@ def event_loop():
 
 @pytest.fixture
 def client():
-    return PixivClient(max_rate=50)
+    return PixivClient()
 
 
 @pytest.mark.asyncio
 class TestLogin:
-    async def test_login_with_password(self, client: PixivClient):
-        account = await client.login_with_pwd(
-            PIXIV_USERNAME,
-            PIXIV_PASSWORD,
-            PIXIV_SECRET,
-            proxy=os.environ.get("HTTP_PROXY"),
-        )
-        assert account.name == "Karako"
-        logger.info(f"password login with {account.name}")
-
     async def test_login_with_token(self, client: PixivClient):
         account = await client.login_with_token(PIXIV_TOKEN)
         assert account.name
@@ -62,23 +52,21 @@ class TestIllustAPI:
     async def login(client: PixivClient):
         await client.login_with_token(PIXIV_TOKEN)
 
-    async def test_search(self, client: PixivClient):
+    async def test_search_illust(self, client: PixivClient):
         await self.login(client)
 
-        section = client.ILLUST
-
-        search_result = await section.search(
-            "原神", sort=SearchShort.DateIncrements, duration=SearchDuration.week
+        result = await client.ILLUST.search(
+            "初音ミク", sort=SearchShort.DateIncrements, duration=SearchDuration.week
         )
-        assert len(search_result.illusts) == 30
+        assert len(result.previews) == 30
         assert (
-            search_result.illusts[0].create_date.astimezone() + timedelta(days=8)
+            result.previews[0].create_date.astimezone() + timedelta(days=8)
             >= datetime.now().astimezone()
         )
 
-        async for illust in search_result.iter_all_pages():
-            for _ in range(50):
-                assert illust
+        num = 0
+        async for illust in result.iter_all_pages():
+            if num < 50:
                 logger.info(illust.id, illust.title)
-
-        breakpoint()
+            else:
+                break

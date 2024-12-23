@@ -39,11 +39,11 @@ speedups = [
     "regex",
     "uvloop<1.0.0,>=0.16.0; sys_platform != \"win32\""
 ]
-playwright = [
-    "playwright<2.0.0,>=1.26.1",
-    "pyotp>=2.9.0",
-    "playwright-stealth>=1.0.6",
-    "distribute>=0.7.3",
+dev = [
+    "pytest<9.0,>=8.0",
+    "black",
+    "pytest-asyncio<0.24.0,>=0.23.5",
+    "pytest-env>=1.1.3",
 ]
 
 [project.urls]

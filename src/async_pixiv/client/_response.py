@@ -60,6 +60,9 @@ class Response(DefaultResponse):
                 raise RESULT_ERROR_MAP.get(error["message"], ApiError)(error)
         return self
 
+    def raise_error(self) -> Self:
+        return self.raise_for_status().raise_for_result()
+
     @lru_cache(maxsize=8)
     def json(self, **kwargs: Any) -> dict[str, Any]:
         return self._json_loads(self.content, **kwargs)

@@ -84,7 +84,7 @@ class APIBase[T](ABC):
                 **kwargs,
             },
         )
-        response.raise_for_result().raise_for_status()
+        response.raise_error()
 
         search_result_type_name = f"{self.type.title()}PageResult"
 
