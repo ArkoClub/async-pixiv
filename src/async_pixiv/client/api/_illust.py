@@ -5,10 +5,9 @@ from async_pixiv.const import APP_API_HOST
 from async_pixiv.model import Illust, PixivModel
 from async_pixiv.model.other.enums import SearchShort, SearchTarget
 from async_pixiv.model.other.result import PageResult, UgoiraMetadataResult
+from async_pixiv.utils.context import set_pixiv_client
 
 __all__ = ("IllustAPI", "IllustPageResult", "IllustDetail")
-
-from async_pixiv.utils.context import set_pixiv_client
 
 
 class IllustDetail(PixivModel):

@@ -17,11 +17,6 @@ try:
 except ImportError:
     from json import loads as default_json_loads
 
-try:
-    import regex as re
-except ImportError:
-    import re
-
 
 __all__ = ("Response",)
 
@@ -61,6 +56,8 @@ class Response(DefaultResponse):
         return self
 
     def raise_error(self) -> Self:
+        if self.content is not None:
+            return self.raise_for_result()
         return self.raise_for_status().raise_for_result()
 
     @lru_cache(maxsize=8)
