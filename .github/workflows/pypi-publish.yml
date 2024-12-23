@@ -19,7 +19,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup PDM
         uses: pdm-project/setup-pdm@v4
-      - name: Install pdm-publish
-        run: pdm plugin add pdm-publish
+
       - name: Publish package distributions to PyPI
-        run: pdm publish --password ${{ secrets.PYPI_API_TOKEN }}
+        run: pdm publish -u __token__ -P ${{ secrets.PYPI_API_TOKEN }}
