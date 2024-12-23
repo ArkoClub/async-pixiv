@@ -3,6 +3,7 @@ from functools import cached_property, partial
 from io import BytesIO
 from typing import Literal, TYPE_CHECKING
 
+# noinspection PyProtectedMember
 from pytz.tzinfo import DstTzInfo
 
 from async_pixiv.client._net import AsyncClient, Retry

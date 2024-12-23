@@ -1,6 +1,6 @@
 [project]
 name = "async-pixiv"
-version = "1.0.0a1"
+version = "1.0.0a2"
 description = "Async Pixiv API for Python"
 authors = [
     { name = "Arko", email = "arko.space.cc@gmail.com" },
@@ -11,10 +11,12 @@ dependencies = [
     "aiofiles>=24.1.0",
     "httpx>=0.27.0",
     "aiohttp-socks>=0.9.0",
-    "pyee>=11.1.0",
     "msgspec>=0.18.0",
     "aiolimiter>=1.1.0",
     "requests>=2.32.0",
+    "python-ffmpeg>=2.0.12, <3.0.0",
+    "pytz>=2024.2",
+    "tzlocal>=5.2",
 ]
 requires-python = ">=3.12"
 readme = "README.md"
@@ -33,8 +35,10 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-regex = ["regex"]
-extra = ["uvloop<1.0.0,>=0.16.0; sys_platform != \"win32\""]
+speedups = [
+    "regex",
+    "uvloop<1.0.0,>=0.16.0; sys_platform != \"win32\""
+]
 playwright = [
     "playwright<2.0.0,>=1.26.1",
     "pyotp>=2.9.0",

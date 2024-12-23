@@ -8,7 +8,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 
 from async_pixiv.model._base import PixivModel
 from async_pixiv.model.other.image import AccountImage, ImageUrl
-from async_pixiv.typedefs import Enum, URL
+from async_pixiv.typedefs import Enum, UrlType
 
 __all__ = (
     "User",
@@ -40,8 +40,8 @@ class User(PixivModel):
     is_access_blocking_user: bool | None = None
 
     @cached_property
-    def link(self) -> URL:
-        return URL(f"https://www.pixiv.net/users/{self.id}")
+    def link(self) -> UrlType:
+        return UrlType(f"https://www.pixiv.net/users/{self.id}")
 
     async def detail(self) -> "FullUser":
         if self._pixiv_client is None:
@@ -141,8 +141,8 @@ class UserTwitter(PixivModel):
     account: str | None = None
 
     @property
-    def url(self) -> URL:
-        return URL(f"https://twitter.com/{self.account}")
+    def url(self) -> UrlType:
+        return UrlType(f"https://twitter.com/{self.account}")
 
     def __str__(self) -> str:
         return f"@{self.account}"
@@ -152,7 +152,7 @@ class UserTwitter(PixivModel):
 
 
 class UserProfile(PixivModel):
-    webpage: URL | None = None
+    webpage: UrlType | None = None
     gender: UserGender = Field(alias="gender")
     birthday: UserBirthday
     region: str | None = None
@@ -168,10 +168,10 @@ class UserProfile(PixivModel):
     art_count: UserArtCount
 
     bookmarks: int = Field(alias="total_illust_bookmarks_public")
-    background_image: URL | None = Field(None, alias="background_image_url")
+    background_image: UrlType | None = Field(None, alias="background_image_url")
 
     twitter: UserTwitter | None = None
-    pawoo_url: URL | None = None
+    pawoo_url: UrlType | None = None
 
     is_premium: bool
     is_using_custom_profile_image: bool
@@ -264,7 +264,7 @@ class UserWorkspace(PixivModel):
     desk: str | None = None
     chair: str | None = None
     comment: str | None = None
-    workspace_image: URL | None = None
+    workspace_image: UrlType | None = None
 
 
 class FullUser(PixivModel):

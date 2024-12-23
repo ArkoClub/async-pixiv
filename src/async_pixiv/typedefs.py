@@ -27,7 +27,7 @@ __all__ = (
     "IllustTypes",
     "StrPath",
     "UGOIRA_RESULT_TYPE",
-    "URL",
+    "UrlType",
     "Enum",
     "EnumType",
     "Datetime",
@@ -271,4 +271,4 @@ def _url_validator(value) -> _URL:
         return _URL(str(value))
 
 
-URL = Annotated[URL_Protocol, PlainValidator(_url_validator)]
+UrlType = Annotated[URL_Protocol, PlainValidator(_url_validator)]

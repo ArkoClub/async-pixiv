@@ -5,13 +5,13 @@ from pydantic import Field
 
 from async_pixiv.model._base import PixivModel
 from async_pixiv.model.other.image import QualityUrl
-from async_pixiv.typedefs import URL
+from async_pixiv.typedefs import UrlType
 from async_pixiv.utils.context import set_pixiv_client
 
 
 class PageResult[T](ABC, PixivModel):
     previews: list[T] = []
-    next_url: URL | None = None
+    next_url: UrlType | None = None
 
     def __iter__(self) -> Iterator[T]:
         return iter(self.previews)
@@ -32,14 +32,16 @@ class PageResult[T](ABC, PixivModel):
                 yield result
             next_results = await next_results.next()
 
+
 class UgoiraFrameMetadata(PixivModel):
-        file: str
-        delay: int
+    file: str
+    delay: int
 
 
 class UgoiraMetadata(PixivModel):
     zip_url: QualityUrl = Field(alias="zip_urls")
     frames: list[UgoiraFrameMetadata]
+
 
 class UgoiraMetadataResult(PixivModel):
     metadata: UgoiraMetadata = Field(alias="ugoira_metadata")

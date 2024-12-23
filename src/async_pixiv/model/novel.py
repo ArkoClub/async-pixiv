@@ -5,7 +5,7 @@ from pydantic import Field
 from async_pixiv.model import ImageUrl, Tag
 from async_pixiv.model._base import PixivModel
 from async_pixiv.model.user import User
-from async_pixiv.typedefs import Datetime, URL
+from async_pixiv.typedefs import Datetime, UrlType
 
 __all__ = ("Novel", "NovelSeries")
 
@@ -39,5 +39,5 @@ class Novel(PixivModel):
     ai_type: int = Field(alias="novel_ai_type")
 
     @cached_property
-    def link(self) -> URL:
-        return URL(f"https://www.pixiv.net/novel/show.php?id={self.id}")
+    def link(self) -> UrlType:
+        return UrlType(f"https://www.pixiv.net/novel/show.php?id={self.id}")

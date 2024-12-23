@@ -1,14 +1,15 @@
 from asyncio import Event
-from functools import cached_property
+from functools import cache, cached_property
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal, overload
 from zipfile import ZipFile
 
-from aiofiles.tempfile import TemporaryDirectory
-from pydantic import Field
-from functools import cache
 from aiofiles import open as async_open
+from aiofiles.tempfile import TemporaryDirectory
+from ffmpeg.asyncio import FFmpeg
+from pydantic import Field
+from yarl import URL
 
 from async_pixiv.error import ArtWorkTypeError
 from async_pixiv.model._base import PixivModel
@@ -17,8 +18,7 @@ from async_pixiv.model.other.image import ImageUrl
 from async_pixiv.model.other.result import UgoiraMetadata
 from async_pixiv.model.other.tag import Tag
 from async_pixiv.model.user import User
-from async_pixiv.typedefs import Datetime, Enum, URL
-from async_pixiv.utils.ffmpeg import FFmpeg
+from async_pixiv.typedefs import Datetime, Enum, UrlType
 
 UGOIRA_RESULT_TYPE = Literal["zip", "gif", "mp4", "frame"]
 
@@ -40,10 +40,10 @@ class IllustType(Enum):
 
 
 class IllustMetaSinglePage(PixivModel):
-    original: URL | None = Field(None, alias="original_image_url")
+    original: UrlType | None = Field(None, alias="original_image_url")
 
     @property
-    def link(self) -> URL | None:
+    def link(self) -> UrlType | None:
         return self.original
 
 
@@ -59,7 +59,7 @@ class Illust(PixivModel):
     caption: str | None = None
     restrict: int
     user: User
-    tags: list[Tag] = []
+    tags: list[Tag] = Field()
     tools: list[str]
     create_date: Datetime
     page_count: int
@@ -81,7 +81,7 @@ class Illust(PixivModel):
     total_comments: int | None = None
 
     @cached_property
-    def link(self) -> URL:
+    def link(self) -> UrlType:
         return URL(f"https://www.pixiv.net/artworks/{self.id}")
 
     @cache
@@ -168,6 +168,7 @@ class Illust(PixivModel):
         if result_type == "zip":
             return data
 
+        # noinspection PyTypeChecker
         zip_file = ZipFile(BytesIO(data))
 
         if result_type == "frame":

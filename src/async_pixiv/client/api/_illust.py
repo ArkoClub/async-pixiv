@@ -16,7 +16,7 @@ class IllustDetail(PixivModel):
 
 
 class IllustPageResult(PageResult[Illust]):
-    previews: list[Illust] = Field([], alias="illusts")
+    previews: list[Illust] = Field(alias="illusts")
     search_span_limit: int
     show_ai: bool
 
