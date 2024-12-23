@@ -1,48 +1,38 @@
-from typing import Any, Optional, TYPE_CHECKING, TypeVar
+from typing import Any, Optional, Self, TYPE_CHECKING
 
 from pydantic import (
-    BaseConfig as PydanticBaseConfig,
-    BaseModel as PydanticBaseModel,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
     PrivateAttr,
-    validator,
+    field_validator,
 )
 
-from async_pixiv.utils.context import PixivClientContext
+from async_pixiv.utils.context import get_pixiv_client, set_pixiv_client
 
 if TYPE_CHECKING:
-    from async_pixiv.client import PixivClient
+    from async_pixiv import PixivClient
 
-    Model = TypeVar("Model", bound="BaseModel")
-
-__all__ = ["PixivModel", "PixivModelConfig", "null_dict_validator"]
-
-T = TypeVar("T")
+__all__ = ("PixivModel", "NullDictValidator")
 
 
-class PixivModelConfig(PydanticBaseConfig):
-    try:
-        import ujson as json
-    except ImportError:
-        import json
-    json_dumps = json.dumps
-    json_loads = json.loads
-    validate_all = True
-    validate_assignment = True
-
-
-class PixivModel(PydanticBaseModel):
-    class Config(PixivModelConfig):
-        pass
-
+# noinspection Pydantic
+class PixivModel(BaseModel):
+    model_config = ConfigDict(validate_default=True, validate_assignment=True)
     _pixiv_client: Optional["PixivClient"] = PrivateAttr(None)
 
-    def __init__(self, **data: Any):
-        super().__init__(**data)
-        self._pixiv_client = PixivClientContext.get()
+    @classmethod
+    def model_validate(cls, *args, **kwargs) -> Self:
+        cls.model_rebuild()
+        return super().model_validate(*args, **kwargs)
 
-    def __new__(cls, *args, **kwargs):
-        cls.update_forward_refs()
-        return super(PixivModel, cls).__new__(cls)
+    def __init__(
+        self, _pixiv_client: Optional["PixivClient"] = None, **data: Any
+    ) -> None:
+        pixiv_client = _pixiv_client or get_pixiv_client()
+        with set_pixiv_client(pixiv_client):
+            super().__init__(**data)
+        self._pixiv_client = pixiv_client
 
     def __str__(self) -> str:
         if hasattr(self, "id"):
@@ -55,12 +45,17 @@ class PixivModel(PydanticBaseModel):
             return hash((self.__class__.__name__, self.id))
         return super(PixivModel, self).__hash__()
 
+    @field_validator("*", mode="before")
+    @classmethod
+    def string_validator(cls, value: Any) -> str:
+        return None if value == {} or value == "" else value
 
-def null_dict_validator(*fields: str) -> classmethod:
-    def v(cls, value: T) -> Optional[T]:
-        if value == {}:
-            return None
-        else:
-            return value
 
-    return validator(*fields, pre=True, always=True, allow_reuse=True)(v)
+def _validator[T](value: T) -> T | None:
+    if value == {}:
+        return None
+    else:
+        return value
+
+
+NullDictValidator = BeforeValidator(_validator)

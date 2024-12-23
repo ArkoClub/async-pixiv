@@ -1,438 +1,227 @@
-import logging
-from functools import wraps
+import os
+from functools import cached_property, partial
 from io import BytesIO
-from pathlib import Path
-from threading import Lock as ThreadLock
-from typing import (
-    Any,
-    AsyncIterator,
-    Callable,
-    ClassVar,
-    Dict,
-    List,
-    NamedTuple,
-    Optional,
-    TYPE_CHECKING,
-    Tuple,
-    TypeVar,
-    Union,
-)
-
-from aiofiles import open as async_open
-
-# noinspection PyUnresolvedReferences
-from aiofiles.tempfile import SpooledTemporaryFile
-from aiohttp.typedefs import StrOrURL
-from aiolimiter import AsyncLimiter
-from arkowrapper import ArkoWrapper
-from httpx import USE_CLIENT_DEFAULT
+from typing import Literal, TYPE_CHECKING
 
 # noinspection PyProtectedMember
-from httpx._client import UseClientDefault
+from pytz.tzinfo import DstTzInfo
 
-# noinspection PyProtectedMember
-from httpx._types import (
-    AuthTypes,
-    CookieTypes,
-    HeaderTypes,
-    ProxiesTypes,
-    QueryParamTypes,
-    RequestContent,
-    RequestData,
-    RequestExtensions,
-    RequestFiles,
-    TimeoutTypes,
-    URLTypes,
-)
-from typing_extensions import ParamSpec
+from async_pixiv.client._net import AsyncClient, Retry
+from async_pixiv.model.user import Account
+from async_pixiv.utils.context import PixivClientContext, TimezoneContext
 
-# noinspection PyProtectedMember
-from async_pixiv.client._section import SectionType
-from async_pixiv.error import (
-    LoginError,
-    OauthError,
-)
-from async_pixiv.model.user import User
-from async_pixiv.utils.context import set_pixiv_client
-from async_pixiv.utils.net import Net
-from async_pixiv.utils.overwrite import Response
+try:
+    from orjson import loads as default_json_loads
+except ImportError:
+    from json import loads as default_json_loads
+
+try:
+    import regex as re
+except ImportError:
+    import re
+try:
+    from playwright.async_api import async_playwright
+
+    # noinspection PyProtectedMember
+    from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
+except ImportError:
+    async_playwright = None
+    PlaywrightTimeoutError = None
 
 if TYPE_CHECKING:
-    from async_pixiv.client import (
-        USER,
-        ILLUST,
-        NOVEL,
-    )
+    from pathlib import Path
 
-__all__ = ["PixivClient"]
+    # noinspection PyProtectedMember
+    from async_pixiv.client.api._abc import APIBase
 
-_REDIRECT_URI = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
-_LOGIN_URL = "https://app-api.pixiv.net/web/v1/login"
-_LOGIN_VERIFY = "https://accounts.pixiv.net/ajax/login"
-_AUTH_TOKEN_URL = "https://oauth.secure.pixiv.net/auth/token"
+    # noinspection PyProtectedMember
+    from async_pixiv.client.api._user import UserAPI
 
-P = ParamSpec("P")
-R = TypeVar("R")
-T = TypeVar("T")
-logger = logging.getLogger("async_pixiv.client")
+    # noinspection PyProtectedMember
+    from async_pixiv.client.api._illust import IllustAPI
+
+    # noinspection PyProtectedMember
+    from async_pixiv.client.api._novel import NovelAPI
 
 
-# noinspection PyPep8Naming
-class PixivClient(Net):
-    _instances: ClassVar[List["PixivClient"]] = []
+__all__ = ("PixivClient",)
 
-    @classmethod
-    def get_client(cls) -> "PixivClient":
-        if cls._instances:
-            return cls._instances[0]
-        else:
-            raise ValueError("请先实列化一个 PixivClient ")
+# noinspection SpellCheckingInspection
+PIXIV_APP_CLIENT_ID = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
+# noinspection SpellCheckingInspection
+PIXIV_APP_CLIENT_SECRET = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
 
-    @classmethod
-    def get_clients(cls) -> List["PixivClient"]:
-        return cls._instances
 
-    _lock: ThreadLock = ThreadLock()
+class PixivClientNet:
+    _client: AsyncClient
 
-    class Config(NamedTuple):
-        client_id: str
-        client_secret: str
-        user_agent: str
-        accept_language: str
-
-    _config: Config
-    _request_headers: Dict[str, Any]
-
-    access_token: Optional[str] = None
-    refresh_token: Optional[str] = None
-    account: Optional[User] = None
-    _sections: Dict[str, SectionType] = {}
+    access_token: str | None = None
+    refresh_token: str | None = None
 
     @property
-    def USER(self) -> "USER":
-        with self._lock:
-            if self._sections.get("user", None) is None:
-                from async_pixiv.client import USER
+    def is_closed(self) -> bool:
+        return self._client.is_closed
 
-                self._sections["user"] = USER(self)
-        return self._sections["user"]
+    async def close(self) -> None:
+        await self._client.aclose()
 
-    @property
-    def ILLUST(self) -> "ILLUST":
-        with self._lock:
-            if self._sections.get("illust", None) is None:
-                from async_pixiv.client import ILLUST
+    def _update_header(self, headers=None):
+        return (headers or {}) | {
+            "Authorization": (
+                self.access_token
+                if self.access_token is None
+                else f"Bearer {self.access_token}"
+            ),
+        }
 
-                self._sections["illust"] = ILLUST(self)
-        return self._sections["illust"]
+    async def request(self, *args, headers=None, **kwargs):
+        return await self._client.request(
+            *args, headers=self._update_header(headers), **kwargs
+        )
 
-    @property
-    def NOVEL(self) -> "NOVEL":
-        with self._lock:
-            if self._sections.get("novel", None) is None:
-                from async_pixiv.client import NOVEL
+    async def request_get(self, *args, headers=None, **kwargs):
+        return await self._client.get(
+            *args, headers=self._update_header(headers), **kwargs
+        )
 
-                self._sections["novel"] = NOVEL(self)
-        return self._sections["novel"]
+    async def request_options(self, *args, headers=None, **kwargs):
+        return await self._client.options(
+            *args, headers=self._update_header(headers), **kwargs
+        )
+
+    async def request_head(self, *args, headers=None, **kwargs):
+        return await self._client.head(
+            *args, headers=self._update_header(headers), **kwargs
+        )
+
+    async def request_post(self, *args, headers=None, **kwargs):
+        return await self._client.post(
+            *args, headers=self._update_header(headers), **kwargs
+        )
+
+    async def request_put(self, *args, headers=None, **kwargs):
+        return await self._client.put(
+            *args, headers=self._update_header(headers), **kwargs
+        )
+
+    async def request_patch(self, *args, headers=None, **kwargs):
+        return await self._client.patch(
+            *args, headers=self._update_header(headers), **kwargs
+        )
+
+    async def request_delete(self, *args, headers=None, **kwargs):
+        return await self._client.delete(
+            *args, headers=self._update_header(headers), **kwargs
+        )
+
+    async def download(self, url, method="GET", *, output=None, chunk_size=None):
+        async with self._client.stream(
+            method, url, headers=self._update_header()
+        ) as response:
+            from async_pixiv.utils.overwrite import Response
+
+            response: Response
+            if output is None:
+                data = b""
+                async for chunk in response.aiter_bytes(chunk_size):
+                    data += chunk
+                return data
+            elif not isinstance(output, BytesIO):
+                from aiofiles import open as async_open
+
+                output = Path(output).resolve()
+
+                async with async_open(output, mode="wb") as file:
+                    async for chunk in response.aiter_bytes(chunk_size):
+                        await file.write(chunk)
+            else:
+                async for chunk in response.aiter_bytes(chunk_size):
+                    output.write(chunk)
+        return output
+
+
+# noinspection PyPropertyDefinition
+class PixivClient(PixivClientNet):
+    account = None
 
     @property
     def is_logged(self) -> bool:
         return self.refresh_token is not None
 
-    def need_logged(self, func: Callable[[P], R]) -> Callable[[P], R]:
-        @wraps(func)
-        def wrapper():
-            if not self.is_logged:
-                raise OauthError("Please login.")
-            return func
+    @property
+    def accept_language(self) -> str:
+        return self._client.headers["Accept-Language"]
 
-        return wrapper
+    @accept_language.setter
+    def accept_language(self, accept_language: str) -> None:
+        self._client.headers.update({"Accept-Language": accept_language})
 
     def __init__(
         self,
         *,
-        max_rate: float = 100,
-        rate_time_period: float = 60,
-        timeout: float = 10,
-        proxies: Optional[ProxiesTypes] = None,
-        trust_env: bool = False,
-        retry: int = 5,
-        retry_sleep: float = 1,
+        limiter=None,
+        proxy=None,
+        timeout=None,
+        trust_env=True,
+        bypass=False,
+        retry_times=5,
+        retry_sleep=1,
+        json_loads=default_json_loads,
+        timezone: DstTzInfo | None = None,
     ):
-        super().__init__(
-            rate_limiter=AsyncLimiter(max_rate, rate_time_period),
+        self._sections = {}
+        self._client = AsyncClient(
+            limiter=limiter,
+            proxy=proxy,
             timeout=timeout,
-            proxies=proxies,
             trust_env=trust_env,
-            retry=retry,
-            retry_sleep=retry_sleep,
+            bypass=bypass,
+            json_loads=json_loads,
+            retry=Retry(times=retry_times, sleep=retry_sleep),
         )
-        config_path = (Path(__file__) / "../config").resolve()
-        with open(config_path, encoding="utf-8") as file:
-            self._config = PixivClient.Config(
-                *ArkoWrapper(file.readlines()).map(lambda x: x.strip())
-            )
-        self._request_headers = {
-            "App-OS": "ios",
-            "App-OS-Version": "12.2",
-            "App-Version": "7.6.2",
-            "user-agent": self._config.user_agent,
-            "Referer": "https://app-api.pixiv.net/",
-            "Accept-Language": "zh-CN,zh;q=0.9,zh-Hans;q=0.8,en;q=0.7,zh-Hant;"
-            "q=0.6,ja;q=0.5",
-        }
-        PixivClient._instances.append(self)
+        self._client_token = PixivClientContext.set(self)
+        self._timezone_token = TimezoneContext.set(timezone)
 
-    def set_accept_language(self, language: str) -> None:
-        self._request_headers.update({"Accept-Language": language})
+    async def login_with_token(self, token=None) -> Account:
+        if token is None:
+            token = os.environ["PIXIV_TOKEN"]
 
-    async def request(
-        self,
-        method: str,
-        url: URLTypes,
-        *,
-        content: Optional[RequestContent] = None,
-        data: Optional[RequestData] = None,
-        files: Optional[RequestFiles] = None,
-        json: Optional[Any] = None,
-        params: Optional[QueryParamTypes] = None,
-        headers: Optional[HeaderTypes] = None,
-        cookies: Optional[CookieTypes] = None,
-        auth: Union[AuthTypes, UseClientDefault, None] = USE_CLIENT_DEFAULT,
-        follow_redirects: Union[UseClientDefault, bool] = USE_CLIENT_DEFAULT,
-        timeout: Union[UseClientDefault, TimeoutTypes] = USE_CLIENT_DEFAULT,
-        extensions: Optional[RequestExtensions] = None,
-    ) -> Response:
-        headers = headers or {}
-        params = params or {}
-
-        headers.update(
-            {
-                "Authorization": self.access_token
-                if self.access_token is None
-                else f"Bearer {self.access_token}",
-            }
-        )
-
-        for key, value in self._request_headers.items():
-            if key not in headers:
-                headers[key] = value
-
-        return await super().request(
-            method,
-            str(url),
-            content=content,
-            data=data,
-            files=files,
-            json=json,
-            params={k: v for k, v in params.items() if v is not None},
-            headers={k: v for k, v in headers.items() if v is not None},
-            cookies=cookies,
-            auth=auth,
-            follow_redirects=follow_redirects,
-            timeout=timeout,
-            extensions=extensions,
-        )
-
-    def stream(
-        self,
-        method: str,
-        url: URLTypes,
-        *,
-        content: Optional[RequestContent] = None,
-        data: Optional[RequestData] = None,
-        files: Optional[RequestFiles] = None,
-        json: Optional[Any] = None,
-        params: Optional[QueryParamTypes] = None,
-        headers: Optional[HeaderTypes] = None,
-        cookies: Optional[CookieTypes] = None,
-        auth: Union[AuthTypes, UseClientDefault, None] = USE_CLIENT_DEFAULT,
-        follow_redirects: Union[UseClientDefault, bool] = USE_CLIENT_DEFAULT,
-        timeout: Union[UseClientDefault, TimeoutTypes] = USE_CLIENT_DEFAULT,
-        extensions: Optional[RequestExtensions] = None,
-    ) -> AsyncIterator[Response]:
-        headers = headers or {}
-        params = params or {}
-
-        headers.update(
-            {
-                "Authorization": self.access_token
-                if self.access_token is None
-                else f"Bearer {self.access_token}",
-                **self._request_headers,
-            }
-        )
-
-        return super().stream(
-            method,
-            str(url),
-            content=content,
-            data=data,
-            files=files,
-            json=json,
-            params={k: v for k, v in params.items() if v is not None},
-            headers={k: v for k, v in headers.items() if v is not None},
-            cookies=cookies,
-            auth=auth,
-            follow_redirects=follow_redirects,
-            timeout=timeout,
-            extensions=extensions,
-        )
-
-    async def login_with_pwd(
-        self, username: str, password: str, proxy: Optional[str] = None
-    ) -> User:
-        try:
-            from playwright.async_api import async_playwright
-        except ImportError:
-            raise ImportError("Please install 'playwright'.")
-
-        def oauth_pkce() -> Tuple[str, str]:
-            from secrets import token_urlsafe
-            from hashlib import sha256
-            from base64 import urlsafe_b64encode
-
-            verifier = token_urlsafe(32)
-            challenge = (
-                urlsafe_b64encode(sha256(verifier.encode("ascii")).digest())
-                .rstrip(b"=")
-                .decode("ascii")
-            )
-            return verifier, challenge
-
-        async with async_playwright() as playwright:
-            from urllib.parse import (
-                parse_qs,
-                urlparse,
-                urlencode,
-            )
-
-            if proxy is not None:
-                # noinspection PyTypeChecker
-                browser = await playwright.chromium.launch(proxy={"server": proxy})
-            else:
-                browser = await playwright.chromium.launch()
-            context = await browser.new_context()
-            api_request_context = context.request
-            page = await context.new_page()
-
-            # 访问登录页面
-            code_verifier, code_challenge = oauth_pkce()
-            await page.goto(
-                urlparse(_LOGIN_URL)
-                ._replace(
-                    query=urlencode(
-                        {
-                            "code_challenge": code_challenge,
-                            "code_challenge_method": "S256",
-                            "client": "pixiv-android",
-                        }
-                    )
-                )
-                .geturl(),
-                timeout=0,
-            )
-
-            # 输入用户名与密码
-            await page.locator('input[autocomplete="username"]').fill(username)
-            password_input = page.locator('input[type="password"]')
-            await password_input.fill(password)
-
-            # 点击登录按钮
-            login_form = password_input.locator("xpath=ancestor::form") # 从密码输入框导航到外层的 form 元素
-            login_button = login_form.locator('button, input[type="submit"]') # 从 form 元素内部定位到登录按钮
-
-            # 验证登录
-            # noinspection PyBroadException
-            try:
-                async with page.expect_response(f"{_LOGIN_VERIFY}*") as future:
-                    await login_button.click()
-                    response = await (await future.value).json()
-                raise LoginError(f"登录错误，请检查登录的用户名和密码是否正确：{response['body']['errors']}")
-            except Exception as e:
-                if not isinstance(e, LoginError):
-                    logger.debug("登录成功，正尝试获取 token")
-
-            # 获取code
-            async with page.expect_request(f"{_REDIRECT_URI}*") as request:
-                url = urlparse((await request.value).url)
-            code = parse_qs(url.query)["code"][0]
-
-            # 获取token
-            response = await api_request_context.post(
-                _AUTH_TOKEN_URL,
-                form={
-                    "client_id": self._config.client_id,
-                    "client_secret": self._config.client_secret,
-                    "code": code,
-                    "code_verifier": code_verifier,
-                    "grant_type": "authorization_code",
-                    "include_policy": "true",
-                    "redirect_uri": _REDIRECT_URI,
-                },
-                headers={
-                    "Accept-Encoding": "gzip, deflate",
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "User-Agent": self._config.user_agent,
-                    "Host": "oauth.secure.pixiv.net",
-                },
-                timeout=0,
-            )
-            data = await response.json()
-            await browser.close()
-        self.access_token = data["access_token"]
-        self.refresh_token = data["refresh_token"]
-        with set_pixiv_client(self):
-            self.account = User.parse_obj(data["user"])
-        return self.account
-
-    async def login_with_token(self, token: str) -> User:
-        response = await self.post(
-            _AUTH_TOKEN_URL,
+        response = await self.request_post(
+            "https://oauth.secure.pixiv.net/auth/token",
             data={
-                "client_id": self._config.client_id,
-                "client_secret": self._config.client_secret,
+                "client_id": PIXIV_APP_CLIENT_ID,
+                "client_secret": PIXIV_APP_CLIENT_SECRET,
                 "grant_type": "refresh_token",
                 "include_policy": "true",
                 "refresh_token": token,
             },
-            headers={"User-Agent": self._config.user_agent},
         )
         data = response.json()
         self.access_token = data["access_token"]
         self.refresh_token = data["refresh_token"]
-        with set_pixiv_client(self):
-            self.account = User.parse_obj(data["user"])
+        self.account = Account.model_validate(data["user"])
+
         return self.account
 
-    async def login(
-        self,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        token: Optional[str] = None,
-    ) -> User:
-        if token is not None:
-            return await self.login_with_token(token)
-        else:
-            return await self.login_with_pwd(username, password)
+    async def close(self) -> None:
+        PixivClientContext.reset(self._client_token)
+        TimezoneContext.reset(self._timezone_token)
+        await super().close()
 
-    async def download(
-        self,
-        url: StrOrURL,
-        *,
-        output: Optional[Union[str, Path, BytesIO]] = None,
-        chunk_size: Optional[int] = None,
-    ) -> bytes:
-        data = b""
-        async with self.stream("GET", url) as response:
-            if not isinstance(output, BytesIO) and output:
-                output = Path(output).resolve()
+    def _get_section(
+        self, section_type: Literal["User", "Illust", "Novel", "Manga"]
+    ) -> "APIBase":
+        section = self._sections.get(section_type, None)
+        if section is None:
+            api_type_name = f"{section_type}API"
+            exec(
+                f"from async_pixiv.client.api._{section_type.lower()} "
+                + f"import {api_type_name}"
+            )
+            api_type: type["APIBase"] = eval(api_type_name)
+            self._sections[section_type] = api_type(self)
+        return self._sections[section_type]
 
-                async with async_open(output) as file:
-                    async for chunk in response.aiter_bytes(chunk_size):
-                        data += chunk
-                        await file.write(chunk)
-            else:
-                async for chunk in response.aiter_bytes(chunk_size):
-                    data += chunk
-        return data
+    USER: "UserAPI" = cached_property(partial(_get_section, section_type="User"))
+    ILLUST: "IllustAPI" = cached_property(partial(_get_section, section_type="Illust"))
+    NOVEL: "NovelAPI" = cached_property(partial(_get_section, section_type="Novel"))
