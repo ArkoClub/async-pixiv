@@ -15,19 +15,6 @@ try:
 except ImportError:
     from json import loads as default_json_loads
 
-try:
-    import regex as re
-except ImportError:
-    import re
-try:
-    from playwright.async_api import async_playwright
-
-    # noinspection PyProtectedMember
-    from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
-except ImportError:
-    async_playwright = None
-    PlaywrightTimeoutError = None
-
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -136,6 +123,7 @@ class PixivClientNet:
                         await file.write(chunk)
             else:
                 async for chunk in response.aiter_bytes(chunk_size):
+                    # noinspection PyTypeChecker
                     output.write(chunk)
         return output
 
