@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 from abc import ABC
 from importlib import import_module
 from threading import RLock as Lock
-from typing import Optional, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Sequence
+
+from pydantic_core._pydantic_core import ValidationError
 
 from async_pixiv.const import APP_API_HOST
-from async_pixiv.error import ClientNotFindError
+from async_pixiv.error import ClientNotFindError, DataValidationError
 from async_pixiv.model import PixivModel
 from async_pixiv.model.other.enums import SearchFilter
 from async_pixiv.model.other.result import PageResult
@@ -63,7 +67,10 @@ class APIBase[T](ABC):
 
         obj_type = _TYPE_CATCH_DICT[obj_type_name]
         with set_pixiv_client(self._pixiv_client):
-            return obj_type.model_validate(json_data)
+            try:
+                return obj_type.model_validate(json_data)
+            except ValidationError:
+                raise DataValidationError(json_data)
 
     async def search(
         self,

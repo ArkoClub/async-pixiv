@@ -37,10 +37,9 @@ class NovelAPI(APIBase):
 
     # noinspection PyShadowingBuiltins
     async def detail(self, id):
-        from async_pixiv.utils.context import set_pixiv_client
-
         # noinspection PyProtectedMember
         from async_pixiv.model.other.enums import SearchFilter
+        from async_pixiv.utils.context import set_pixiv_client
 
         response = await self._pixiv_client.request_get(
             APP_API_HOST / f"v2/{self._type}/detail",

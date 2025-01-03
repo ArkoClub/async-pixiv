@@ -78,6 +78,7 @@ class AsyncClient(DefaultAsyncClient):
                     + "q=0.6,ja;"
                     + "q=0.5"
                 ),
+                "Access-Control-Expose-Headers": "Content-Length",
             },
         )
 

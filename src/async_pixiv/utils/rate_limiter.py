@@ -9,7 +9,7 @@ class RateLimiter(AsyncLimiter):
     max_rate: float | None
 
     def __init__(
-        self, max_rate: float | None = None, time_period: float = 60
+        self, max_rate: float | None = 100.0, time_period: float = 60
     ) -> NoReturn:
         if max_rate is not None:
             super().__init__(max_rate, time_period)

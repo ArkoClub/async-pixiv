@@ -1,11 +1,14 @@
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from async_pixiv.model import ImageUrl, Tag
 from async_pixiv.model._base import PixivModel
-from async_pixiv.model.user import User
 from async_pixiv.typedefs import Datetime, UrlType
+
+if TYPE_CHECKING:
+    from async_pixiv.model import ImageUrl, Tag
+    from async_pixiv.model.user import User
 
 __all__ = ("Novel", "NovelSeries")
 
@@ -22,12 +25,12 @@ class Novel(PixivModel):
     restrict: int
     x_restrict: int
     is_original: bool
-    image_urls: ImageUrl
+    image_urls: "ImageUrl"
     create_date: Datetime
-    tags: list[Tag]
+    tags: list["Tag"]
     page_count: int
     text_length: int
-    user: User
+    user: "User"
     series: NovelSeries | None = None
     is_bookmarked: bool
     total_bookmarks: int

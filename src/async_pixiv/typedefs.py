@@ -2,12 +2,15 @@ from datetime import datetime
 from enum import Enum as BaseEnum
 from functools import cached_property, lru_cache
 from typing import (
+    TYPE_CHECKING,
     Annotated,
+    Awaitable,
+    Callable,
     Literal,
+    NoReturn,
     Optional,
     Protocol,
     Self,
-    TYPE_CHECKING,
     TypeVar,
     Union,
 )
@@ -31,23 +34,24 @@ __all__ = (
     "Enum",
     "EnumType",
     "Datetime",
+    "ProgressHandler",
 )
 
 if TYPE_CHECKING:
     from io import BytesIO
+    from os import PathLike
+    from pathlib import Path
+
     from multidict import MultiDictProxy
 
+    from async_pixiv import PixivClient
     from async_pixiv.model.illust import IllustType
-
     from async_pixiv.model.other.enums import (
         SearchDuration,
         SearchFilter,
         SearchShort,
         SearchTarget,
     )
-    from os import PathLike
-    from pathlib import Path
-    from async_pixiv import PixivClient
 
     StrPath = Union[str, PathLike[str], Path]
     ShortTypes = Union[
@@ -92,6 +96,9 @@ else:
 
     IllustTypes = Union[Literal["illust", "manga", "novel", "ugoira"], "IllustType"]
 
+ProgressHandler = Callable[[int, int], Union[NoReturn, Awaitable[NoReturn]]]
+"""async/sync progress_handler(uploaded_bytes, total_bytes) -> Noreturn"""
+
 UGOIRA_RESULT_TYPE = Literal["zip", "jpg", "iter", "gif", "mp4"]
 
 NotImplementedType = type(NotImplemented)
@@ -120,13 +127,20 @@ async def download(
     *,
     output: Union[StrPath, "BytesIO", None] = None,
     chunk_size: int | None = None,
-    client: "PixivClient" = None,
+    progress_handler: ProgressHandler | None = None,
+    client: Optional["PixivClient"] = None,
 ) -> bytes:
     if client is None:
         from async_pixiv.utils.context import get_pixiv_client
 
         client = get_pixiv_client()
-    return await client.download(self, method, output=output, chunk_size=chunk_size)
+    return await client.download(
+        self,
+        method,
+        output=output,
+        chunk_size=chunk_size,
+        progress_handler=progress_handler,
+    )
 
 
 # noinspection PyPropertyDefinition
@@ -154,6 +168,7 @@ class URL_Protocol(Protocol):  # NOSONAR
         *,
         output: Union[StrPath, "BytesIO"] | None = None,
         chunk_size: int | None = None,
+        progress_handler: ProgressHandler | None = None,
         client: Optional["PixivClient"] = None,
     ) -> Union["Path", bytes, "BytesIO"]: ...
 

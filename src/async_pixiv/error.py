@@ -1,7 +1,21 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from async_pixiv.utils.overwrite import Response
+
+__all__ = (
+    "PixivError",
+    "ClientNotFindError",
+    "LoginError",
+    "OauthError",
+    "InvalidRefreshToken",
+    "ArtWorkTypeError",
+    "StatusError",
+    "APIError",
+    "RateLimitError",
+    "NotExistError",
+    "DataValidationError"
+)
 
 
 class PixivError(Exception):
@@ -15,6 +29,9 @@ class PixivError(Exception):
 
     def __eq__(self, other: Exception) -> bool:
         return self == other
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}: {self.message!r}"
 
 
 class ClientNotFindError(PixivError):
@@ -44,7 +61,7 @@ class StatusError(PixivError):
         self.response = response
         try:
             response_json = response.json()
-        except:
+        except _:  # noqa: F821
             response_json = None
 
         if response_json is not None:
@@ -58,7 +75,7 @@ class StatusError(PixivError):
         return self.reason or self.response
 
 
-class ApiError(PixivError):
+class APIError(PixivError):
     user_message: str = ""
     user_message_details: str = ""
 
@@ -73,9 +90,15 @@ class ApiError(PixivError):
         return self.user_message or self.message or self.user_message_details
 
 
-class RateLimitError(ApiError):
+class RateLimitError(APIError):
     message = "速率限制"
 
 
 class NotExistError(StatusError):
     message = "作品不存在或无浏览权限"
+
+class DataValidationError(APIError):
+    message = "Data validation failed."
+
+    def __init__(self, data: dict):
+        self.data = data

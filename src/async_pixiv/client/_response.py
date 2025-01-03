@@ -1,11 +1,10 @@
-from functools import lru_cache
 from logging import getLogger
 from typing import Any, Self
 
 from httpx import Response as DefaultResponse
 
 from async_pixiv.error import (
-    ApiError,
+    APIError,
     InvalidRefreshToken,
     NotExistError,
     PixivError,
@@ -52,7 +51,7 @@ class Response(DefaultResponse):
             if (errors := json_data.get("errors")) is not None and errors:
                 raise PixivError(errors)
             elif (error := json_data.get("error")) is not None and error:
-                raise RESULT_ERROR_MAP.get(error["message"], ApiError)(error)
+                raise RESULT_ERROR_MAP.get(error["message"], APIError)(error)
         return self
 
     def raise_error(self) -> Self:
@@ -60,6 +59,5 @@ class Response(DefaultResponse):
             return self.raise_for_result()
         return self.raise_for_status().raise_for_result()
 
-    @lru_cache(maxsize=8)
     def json(self, **kwargs: Any) -> dict[str, Any]:
         return self._json_loads(self.content, **kwargs)
