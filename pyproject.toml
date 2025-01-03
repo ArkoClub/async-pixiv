@@ -6,7 +6,6 @@ authors = [
     { name = "Arko", email = "arko.space.cc@gmail.com" },
 ]
 dependencies = [
-    "arko-wrapper>=0.4.1",
     "pydantic[email]>=2.5.3",
     "aiofiles>=24.1.0",
     "httpx>=0.27.0",
@@ -22,7 +21,7 @@ requires-python = ">=3.12"
 readme = "README.md"
 license = { text = "MIT" }
 maintainers = [
-    { name = "Karako", email = "karakohear@gmail.com" },
+    { name = "Karako", email = "karako@karako.moe" },
 ]
 keywords = ["pixiv", "async", "pixiv-api"]
 classifiers = [
@@ -37,6 +36,7 @@ classifiers = [
 [project.optional-dependencies]
 speedups = [
     "regex",
+    "orjson",
     "uvloop<1.0.0,>=0.16.0; sys_platform != \"win32\""
 ]
 dev = [
