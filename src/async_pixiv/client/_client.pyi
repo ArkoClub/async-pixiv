@@ -18,6 +18,7 @@ from httpx._types import (
     TimeoutTypes,
     URLTypes,
 )
+# noinspection PyProtectedMember
 from pytz.tzinfo import DstTzInfo
 from yarl import URL
 
@@ -33,7 +34,7 @@ from async_pixiv.client.api._novel import NovelAPI
 # noinspection PyProtectedMember
 from async_pixiv.client.api._user import UserAPI
 from async_pixiv.model.user import Account
-from async_pixiv.typedefs import EnumType, StrPath
+from async_pixiv.typedefs import EnumType, ProgressHandler, StrPath
 from async_pixiv.utils.rate_limiter import RateLimiter
 
 try:
@@ -53,14 +54,11 @@ class PixivClientNet:
 
     def _update_header(self, headers: HeaderTypes | None = None) -> "HeaderTypes":
         pass
-
     @property
     def is_closed(self) -> bool:
         pass
-
     async def close(self) -> None:
         pass
-
     async def request(
         self,
         method: str,
@@ -79,7 +77,6 @@ class PixivClientNet:
         extensions: RequestExtensions | None = None,
     ) -> Response:
         pass
-
     async def request_get(
         self,
         url: URLTypes | URL,
@@ -93,7 +90,6 @@ class PixivClientNet:
         extensions: RequestExtensions | None = None,
     ) -> Response:
         pass
-
     async def request_options(
         self,
         url: URLTypes | URL,
@@ -107,7 +103,6 @@ class PixivClientNet:
         extensions: RequestExtensions | None = None,
     ) -> Response:
         pass
-
     async def request_head(
         self,
         url: URLTypes | URL,
@@ -121,7 +116,6 @@ class PixivClientNet:
         extensions: RequestExtensions | None = None,
     ) -> Response:
         pass
-
     async def request_post(
         self,
         url: URLTypes | URL,
@@ -139,7 +133,6 @@ class PixivClientNet:
         extensions: RequestExtensions | None = None,
     ) -> Response:
         pass
-
     async def request_put(
         self,
         url: URLTypes | URL,
@@ -157,7 +150,6 @@ class PixivClientNet:
         extensions: RequestExtensions | None = None,
     ) -> Response:
         pass
-
     async def request_patch(
         self,
         url: URLTypes | URL,
@@ -175,7 +167,6 @@ class PixivClientNet:
         extensions: RequestExtensions | None = None,
     ) -> Response:
         pass
-
     async def request_delete(
         self,
         url: URLTypes | URL,
@@ -189,7 +180,6 @@ class PixivClientNet:
         extensions: RequestExtensions | None = None,
     ) -> Response:
         pass
-
     async def download(
         self,
         url: URL | str,
@@ -199,6 +189,7 @@ class PixivClientNet:
         *,
         output: StrPath | BytesIO | str | None = None,
         chunk_size: int | None = None,
+        progress_handler: ProgressHandler | None = None,
     ) -> bytes | StrPath | BytesIO:
         pass
 
@@ -215,7 +206,7 @@ class PixivClient(PixivClientNet):
         self,
         *,
         limiter: RateLimiter | None = None,
-        proxy: ProxyTypes = None,
+        proxy: ProxyTypes | None = None,
         timeout: TimeoutTypes = None,
         trust_env: bool = True,
         bypass: bool = False,
@@ -225,14 +216,11 @@ class PixivClient(PixivClientNet):
         timezone: DstTzInfo | None = None,
     ):
         pass
-
     @property
     def accept_language(self) -> str:
         pass
-
     async def login_with_token(self, token: str | None = None) -> Account:
         pass
-
     async def close(self) -> None:
         pass
     USER: UserAPI

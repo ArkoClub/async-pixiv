@@ -1,10 +1,10 @@
+import asyncio
 import os
 from functools import cached_property, partial
+from inspect import iscoroutinefunction
 from io import BytesIO
-from typing import Literal, TYPE_CHECKING
-
-# noinspection PyProtectedMember
-from pytz.tzinfo import DstTzInfo
+from pathlib import Path
+from typing import TYPE_CHECKING, Literal
 
 from async_pixiv.client._net import AsyncClient, Retry
 from async_pixiv.model.user import Account
@@ -15,20 +15,13 @@ try:
 except ImportError:
     from json import loads as default_json_loads
 
+# noinspection PyProtectedMember
 if TYPE_CHECKING:
-    from pathlib import Path
-
-    # noinspection PyProtectedMember
     from async_pixiv.client.api._abc import APIBase
-
-    # noinspection PyProtectedMember
-    from async_pixiv.client.api._user import UserAPI
-
-    # noinspection PyProtectedMember
     from async_pixiv.client.api._illust import IllustAPI
-
-    # noinspection PyProtectedMember
     from async_pixiv.client.api._novel import NovelAPI
+    from async_pixiv.client.api._user import UserAPI
+    from async_pixiv.utils.overwrite import Response
 
 
 __all__ = ("PixivClient",)
@@ -101,30 +94,54 @@ class PixivClientNet:
             *args, headers=self._update_header(headers), **kwargs
         )
 
-    async def download(self, url, method="GET", *, output=None, chunk_size=None):
+    async def download(
+        self, url, method="GET", *, output=None, chunk_size=None, progress_handler=None
+    ):
+        async def handle_progress(_uploaded, _total, _progress_handler):
+            if _progress_handler is None:
+                return
+            if iscoroutinefunction(_progress_handler):
+                await _progress_handler(_uploaded, _total)
+            else:
+                _progress_handler(_uploaded, _total)
+
+        def add_handle_progress_task(_uploaded, _total):
+            asyncio.create_task(handle_progress(_uploaded, _total, progress_handler))
+
+        chunk_size = chunk_size or 2**20
         async with self._client.stream(
             method, url, headers=self._update_header()
         ) as response:
-            from async_pixiv.utils.overwrite import Response
+            response: "Response"
+            response.raise_for_status().raise_for_status()
 
-            response: Response
+            total = int(response.headers.get("content-length", 0))
             if output is None:
                 data = b""
                 async for chunk in response.aiter_bytes(chunk_size):
                     data += chunk
+                    add_handle_progress_task(len(data), total)
                 return data
-            elif not isinstance(output, BytesIO):
+            elif not isinstance(output, BytesIO):  # str or Path
                 from aiofiles import open as async_open
 
                 output = Path(output).resolve()
-
+                output.parent.mkdir(parents=True, exist_ok=True)
+                if not output.suffix:
+                    output = output.with_suffix(Path(str(url)).suffix)
                 async with async_open(output, mode="wb") as file:
+                    uploaded = 0
                     async for chunk in response.aiter_bytes(chunk_size):
                         await file.write(chunk)
-            else:
+                        uploaded += len(chunk)
+                        add_handle_progress_task(uploaded, total)
+            else:  # BytesIO
+                uploaded = 0
                 async for chunk in response.aiter_bytes(chunk_size):
                     # noinspection PyTypeChecker
                     output.write(chunk)
+                    uploaded += len(chunk)
+                    add_handle_progress_task(uploaded, total)
         return output
 
 
@@ -155,7 +172,7 @@ class PixivClient(PixivClientNet):
         retry_times=5,
         retry_sleep=1,
         json_loads=default_json_loads,
-        timezone: DstTzInfo | None = None,
+        timezone=None,
     ):
         self._sections = {}
         self._client = AsyncClient(
