@@ -1,6 +1,6 @@
 [project]
 name = "async-pixiv"
-version = "1.0.1"
+version = "1.0.2"
 description = "Async Pixiv API for Python"
 authors = [
     { name = "Arko", email = "arko.space.cc@gmail.com" },
