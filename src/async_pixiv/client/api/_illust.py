@@ -4,7 +4,7 @@ from pydantic import Field
 
 from async_pixiv.client.api._abc import APIBase
 from async_pixiv.const import APP_API_HOST
-from async_pixiv.model import Illust, PixivModel
+from async_pixiv.model import Illust, PixivModel, SearchAIType
 from async_pixiv.model.other.enums import SearchShort, SearchTarget
 from async_pixiv.model.other.result import PageResult, UgoiraMetadataResult
 from async_pixiv.utils.context import set_pixiv_client
@@ -34,16 +34,23 @@ class IllustAPI(APIBase):
         start_date: datetime.date | None = None,
         end_date: datetime.date | None = None,
         offset=None,
+        **kwargs,
     ) -> IllustPageResult:
         if start_date is not None and not isinstance(start_date, datetime.date):
             raise TypeError("start_date must be a datetime.date or None")
         if end_date is not None and not isinstance(end_date, (datetime.date, None)):
             raise TypeError("end_date must be a datetime.date or None")
+        if search_ai_type is not None and not isinstance(search_ai_type, SearchAIType):
+            raise TypeError("search_ai_type must be a SearchAIType or None")
 
         if start_date is not None:
             start_date = start_date.strftime("%Y-%m-%d")
         if end_date is not None:
             end_date = end_date.strftime("%Y-%m-%d")
+
+        if search_ai_type is not None:
+            search_ai_type = search_ai_type.value
+
 
         return await super().search(
             words,
@@ -54,6 +61,7 @@ class IllustAPI(APIBase):
             start_date=start_date,
             end_date=end_date,
             offset=offset,
+            **kwargs,
         )
 
     # noinspection PyShadowingBuiltins
