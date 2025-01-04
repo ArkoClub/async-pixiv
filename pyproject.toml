@@ -1,9 +1,10 @@
 [project]
 name = "async-pixiv"
-version = "1.0.2"
-description = "Async Pixiv API for Python"
+version = "1.0.3"
+description = "Async Pixiv API for Python."
 authors = [
     { name = "Arko", email = "arko.space.cc@gmail.com" },
+    { name = "Karako", email = "karako@karako.moe" },
 ]
 dependencies = [
     "pydantic[email]>=2.5.3",
