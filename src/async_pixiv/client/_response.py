@@ -46,8 +46,13 @@ class Response(DefaultResponse):
                 super().raise_for_status()
         return self
 
-    def raise_for_result(self) -> Self:
-        if (json_data := self.json()) is not None:
+    def raise_for_result(self) -> Self:  # NOSONAR
+        # noinspection PyBroadException
+        try:
+            json_data = self.json()
+        except:  # NOSONAR  # noqa: E722
+            return self
+        if json_data is not None:
             if (errors := json_data.get("errors")) is not None and errors:
                 raise PixivError(errors)
             elif (error := json_data.get("error")) is not None and error:

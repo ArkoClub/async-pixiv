@@ -10,7 +10,7 @@ from pydantic_core._pydantic_core import ValidationError
 from async_pixiv.const import APP_API_HOST
 from async_pixiv.error import ClientNotFindError, DataValidationError
 from async_pixiv.model import PixivModel
-from async_pixiv.model.other.enums import SearchFilter
+from async_pixiv.model.other.enums import SearchAIType, SearchFilter
 from async_pixiv.model.other.result import PageResult
 from async_pixiv.typedefs import DurationTypes, ShortTypes
 from async_pixiv.utils.context import get_pixiv_client, set_pixiv_client
@@ -79,6 +79,7 @@ class APIBase[T](ABC):
         sort: ShortTypes | None = None,
         duration: DurationTypes | None = None,
         offset: int | None = None,
+        search_ai_type: SearchAIType | None = None,
         **kwargs,
     ) -> PageResult:
         response = await self._pixiv_client.request_get(
@@ -88,6 +89,7 @@ class APIBase[T](ABC):
                 "sort": sort,
                 "duration": duration,
                 "offset": offset,
+                "search_ai_type": search_ai_type,
                 **kwargs,
             },
         )

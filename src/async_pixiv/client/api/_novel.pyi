@@ -2,8 +2,8 @@ from typing import Sequence
 
 from async_pixiv.client.api._abc import APIBase
 from async_pixiv.model import PixivModel
-from async_pixiv.model.novel import Novel
-from async_pixiv.model.other.enums import SearchShort, SearchTarget
+from async_pixiv.model.novel import Novel, NovelText
+from async_pixiv.model.other.enums import SearchAIType, SearchShort, SearchTarget
 from async_pixiv.model.other.result import PageResult
 from async_pixiv.typedefs import DurationTypes, ShortTypes
 
@@ -27,6 +27,9 @@ class NovelAPI(APIBase):
         duration: DurationTypes | None = None,
         target: SearchTarget | None = SearchTarget.TAGS_PARTIAL,
         offset: int | None = None,
+        search_ai_type: SearchAIType | None = None,
+        merge_plain_keyword_results: bool = True,
+        include_translated_tag_results: bool = True,
         **kwargs,
     ) -> NovelPageResult:
         pass
@@ -35,4 +38,7 @@ class NovelAPI(APIBase):
         pass
 
     async def recommended(self) -> NovelPageResult:
+        pass
+
+    async def text(self, id: int, *, viewer_version: str = "20221031_ai") -> NovelText:
         pass

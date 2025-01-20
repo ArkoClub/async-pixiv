@@ -1,9 +1,11 @@
+from pydantic import Field
 from async_pixiv.model._base import PixivModel
 
 __all__ = ("Tag", "TagTranslation")
 
 
 class Tag(PixivModel):
+    uid: int | None = Field(None, alias="userId")
     name: str
     translated_name: str | None = None
     added_by_uploaded_user: bool | None = None

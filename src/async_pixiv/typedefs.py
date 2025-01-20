@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from enum import Enum as BaseEnum
 from functools import cached_property, lru_cache
 from typing import (
@@ -113,11 +113,11 @@ class Enum(BaseEnum):
 EnumType = TypeVar("EnumType", bound=Union[Enum, BaseEnum])
 
 
-def _datetime_validator(value: datetime) -> datetime:
+def _datetime_validator(value: datetime.datetime) -> datetime.datetime:
     return value.astimezone(get_timezone() or tzlocal.get_localzone())
 
 
-Datetime = Annotated[datetime, AfterValidator(_datetime_validator)]
+Datetime = Annotated[datetime.datetime, AfterValidator(_datetime_validator)]
 
 
 @curses(_URL)

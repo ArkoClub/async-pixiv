@@ -26,11 +26,10 @@ class PageResult[T](ABC, PixivModel):
     async def iter_all_pages(self) -> AsyncIterator[T]:
         for result in self:
             yield result
-        next_results = await self.next()
-        while next_results is not None:
+        next_results = self
+        while (next_results := await next_results.next()) is not None:
             for result in next_results:
                 yield result
-            next_results = await next_results.next()
 
 
 class UgoiraFrameMetadata(PixivModel):

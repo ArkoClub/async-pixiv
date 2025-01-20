@@ -1,7 +1,8 @@
 from abc import ABC
 from threading import RLock as Lock
-from typing import Optional, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Sequence
 
+from async_pixiv.model import SearchAIType
 from async_pixiv.model.other.result import PageResult
 from async_pixiv.typedefs import DurationTypes, ShortTypes
 
@@ -42,6 +43,7 @@ class APIBase[T](ABC):
         sort: ShortTypes | None = None,
         duration: DurationTypes | None = None,
         offset: int | None = None,
+        search_ai_type: SearchAIType | None = None,
         **kwargs,
     ) -> PageResult:
         pass

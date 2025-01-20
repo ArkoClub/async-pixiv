@@ -66,8 +66,8 @@ class SearchFilter(Enum):
 
 
 class SearchAIType(Enum):
-    disallow = 0
+    disallow = "0"
     """过滤AI生成作品"""
 
-    allow = 1
+    allow = "1"
     """显示AI生成作品"""
