@@ -51,7 +51,7 @@ class IllustAPI(APIBase):
         if search_ai_type is not None:
             search_ai_type = search_ai_type.value
 
-
+        # noinspection PyTypeChecker
         return await super().search(
             words,
             sort=sort,

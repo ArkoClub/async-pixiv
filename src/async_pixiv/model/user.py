@@ -5,6 +5,7 @@ from typing import Annotated
 
 import annotated_types
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from yarl import URL
 
 from async_pixiv.model._base import PixivModel
 from async_pixiv.model.other.image import AccountImage, ImageUrl
@@ -41,7 +42,7 @@ class User(PixivModel):
 
     @cached_property
     def link(self) -> UrlType:
-        return UrlType(f"https://www.pixiv.net/users/{self.id}")
+        return URL(f"https://www.pixiv.net/users/{self.id}")
 
     async def detail(self) -> "FullUser":
         if self._pixiv_client is None:
