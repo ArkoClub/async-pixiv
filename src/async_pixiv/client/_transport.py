@@ -32,13 +32,13 @@ try:
 except ImportError:
     import re
 
-__all__ = ("AsyncHTTPTransport", "BypassAsyncHTTPTransport", "HTTPTransport")
+__all__ = ("PixivAsyncHTTPTransport", "BypassPixivAsyncHTTPTransport", "HTTPTransport")
 
 
 logger = getLogger(__name__)
 
 
-class AsyncHTTPTransport(DefaultAsyncHTTPTransport):
+class PixivAsyncHTTPTransport(DefaultAsyncHTTPTransport):
     def __init__(self, *args, json_loads: callable = default_json_loads, **kwargs):
         super().__init__(*args, **kwargs)
         self._json_loads = json_loads
@@ -73,7 +73,7 @@ class AsyncHTTPTransport(DefaultAsyncHTTPTransport):
 
 
 class DNSResolver:
-    """DNS resolver for BypassAsyncHTTPTransport."""
+    """DNS resolver for BypassPixivAsyncHTTPTransport."""
 
     _lock: Lock = Lock()
     _client = None
@@ -167,7 +167,7 @@ class DNSResolver:
         await self._client.aclose()
 
 
-class BypassAsyncHTTPTransport(AsyncHTTPTransport):
+class BypassPixivAsyncHTTPTransport(PixivAsyncHTTPTransport):
     def __init__(self, *args, solver: DNSResolver | None = None, **kwargs) -> None:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         context.check_hostname = False

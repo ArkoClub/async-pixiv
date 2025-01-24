@@ -36,7 +36,7 @@ _DEFAULT_DNS_QUERY_URLS = (
 
 # noinspection SpellCheckingInspection
 class DNSResolver:
-    """DNS resolver for BypassAsyncHTTPTransport."""
+    """DNS resolver for BypassPixivAsyncHTTPTransport."""
 
     _lock: Lock = Lock()
     _client: Optional[AsyncClient] = None
@@ -124,7 +124,7 @@ class DNSResolver:
 
 # noinspection SpellCheckingInspection
 class BypassAsyncHTTPTransport(AsyncHTTPTransport):
-    """重写 AsyncHTTPTransport 的 handle_async_request 方法，以便在请求前解析域名。
+    """重写 PixivAsyncHTTPTransport 的 handle_async_request 方法，以便在请求前解析域名。
 
     灵感来源于:
 

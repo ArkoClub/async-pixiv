@@ -1,16 +1,15 @@
+import asyncio
 from functools import lru_cache
 from logging import getLogger
 
 from httpx import (
     AsyncBaseTransport,
+    AsyncClient as DefaultAsyncClient,
     QueryParams,
     Request,
-    AsyncClient as DefaultAsyncClient,
 )
-
 # noinspection PyProtectedMember
-from httpx._client import USE_CLIENT_DEFAULT, ClientState, UseClientDefault
-
+from httpx._client import ClientState, USE_CLIENT_DEFAULT, UseClientDefault
 # noinspection PyProtectedMember
 from httpx._types import (
     HeaderTypes,
@@ -18,13 +17,13 @@ from httpx._types import (
     QueryParamTypes,
     TimeoutTypes,
 )
-
-# noinspection PyProtectedMember
-from httpx._utils import URLPattern
 from yarl import URL
 
 from async_pixiv.client._response import Response
-from async_pixiv.client._transport import AsyncHTTPTransport, BypassAsyncHTTPTransport
+from async_pixiv.client._transport import (
+    BypassPixivAsyncHTTPTransport,
+    PixivAsyncHTTPTransport,
+)
 from async_pixiv.error import RateLimitError
 from async_pixiv.typedefs import UrlType
 from async_pixiv.utils.rate_limiter import RateLimiter
@@ -61,6 +60,9 @@ class AsyncClient(DefaultAsyncClient):
         retry: Retry | None = None,
         json_loads: callable = default_json_loads,
     ) -> None:
+        # noinspection PyProtectedMember
+        from httpx._utils import URLPattern
+
         super().__init__(
             timeout=timeout,
             trust_env=trust_env,
@@ -90,7 +92,7 @@ class AsyncClient(DefaultAsyncClient):
 
         # noinspection PyPep8Naming
         TransportType = (  # NOSONAR
-            BypassAsyncHTTPTransport if bypass else AsyncHTTPTransport
+            BypassPixivAsyncHTTPTransport if bypass else PixivAsyncHTTPTransport
         )
 
         self._transport = TransportType(
@@ -108,12 +110,9 @@ class AsyncClient(DefaultAsyncClient):
             )
             for key, proxy in proxy_map.items()
         }
-        self._mounts = dict(sorted(self._mounts.items()))
+        # self._mounts = dict(sorted(self._mounts.items()))  # NOSONAR
 
-    async def _send_handling_auth(self, *args, **kwargs) -> Response:
-        return await super()._send_handling_auth(*args, **kwargs)
-
-    async def _send(self, request, *, stream, auth, follow_redirects):
+    async def _send(self, request, *, stream, auth, follow_redirects) -> Response:
         if self._state == ClientState.CLOSED:
             raise RuntimeError("Cannot send a request, as the client has been closed.")
 
@@ -126,7 +125,7 @@ class AsyncClient(DefaultAsyncClient):
 
         auth = self._build_request_auth(request, auth)
 
-        response = await self._send_handling_auth(
+        response: Response = await self._send_handling_auth(
             request,
             auth=auth,
             follow_redirects=follow_redirects,
@@ -142,11 +141,9 @@ class AsyncClient(DefaultAsyncClient):
             await response.aclose()
             raise exc
 
-    async def _send_request(
+    async def send(
         self, request, *, stream=False, auth=USE_CLIENT_DEFAULT, follow_redirects=True
     ):
-        import asyncio
-
         error: BaseException | None = None
         while (n := 0) < self.retry.times:
             async with self.limiter:
@@ -164,7 +161,7 @@ class AsyncClient(DefaultAsyncClient):
                 except Exception as exc:
                     error = exc
                     logger.warning(
-                        f"Request Error: {exc or exc.__class__.__name__}. "
+                        f"Request Error: {str(exc) or repr(exc) or exc.__class__.__name__}. "
                         f"Will retry in {self.retry.sleep}s. ({n + 1}th retry)"
                     )
                     await asyncio.sleep(self.retry.sleep)
