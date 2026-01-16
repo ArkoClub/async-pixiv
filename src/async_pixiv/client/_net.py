@@ -144,8 +144,8 @@ class AsyncClient(DefaultAsyncClient):
     async def send(
         self, request, *, stream=False, auth=USE_CLIENT_DEFAULT, follow_redirects=True
     ):
-        error: BaseException | None = None
-        while (n := 0) < self.retry.times:
+        n = 0
+        while n < self.retry.times:
             async with self.limiter:
                 try:
                     return await self._send(
@@ -156,17 +156,8 @@ class AsyncClient(DefaultAsyncClient):
                     )
                 except RateLimitError:
                     logger.error(f"Rate limit. Retrying in {self.retry.sleep}s.")
-                    n -= 1
                     await asyncio.sleep(self.retry.sleep)
-                except Exception as exc:
-                    error = exc
-                    logger.warning(
-                        f"Request Error: {str(exc) or repr(exc) or exc.__class__.__name__}. "
-                        f"Will retry in {self.retry.sleep}s. ({n + 1}th retry)"
-                    )
-                    await asyncio.sleep(self.retry.sleep)
-        if error is not None:
-            raise error
+                    n += 1
 
     @lru_cache(64)
     def _merge_url(self, url):
