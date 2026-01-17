@@ -16,9 +16,9 @@ class Quality(Enum):
     Medium = "medium"
     Large = "large"
     Original = "original"
-    AdaptiveBest = enum.auto()
+    AdaptiveBest = "adaptive_best"
     """自适应最佳质量"""
-    AdaptiveWorst = enum.auto()
+    AdaptiveWorst = "adaptive_worst"
     """自适应最差质量"""
 
 
