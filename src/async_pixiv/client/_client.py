@@ -1,6 +1,7 @@
 import asyncio
 import os
 from functools import cached_property, partial
+from importlib import import_module
 from inspect import iscoroutinefunction
 from io import BytesIO
 from pathlib import Path
@@ -219,11 +220,9 @@ class PixivClient(PixivClientNet):
         section = self._sections.get(section_type, None)
         if section is None:
             api_type_name = f"{section_type}API"
-            exec(
-                f"from async_pixiv.client.api._{section_type.lower()} "
-                + f"import {api_type_name}"
-            )
-            api_type: type["APIBase"] = eval(api_type_name)
+            module_name = f"async_pixiv.client.api._{section_type.lower()}"
+            module = import_module(module_name)
+            api_type: type["APIBase"] = getattr(module, api_type_name)
             self._sections[section_type] = api_type(self)
         return self._sections[section_type]
 
