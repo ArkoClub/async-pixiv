@@ -91,7 +91,7 @@ class UserBirthday(BaseModel):
             "" if self.year is None else f"{self.year}-"
         ) + f"{self.month}-{self.day}"
 
-    def date(self) -> date:
+    def to_date(self) -> date:
         return date(year=self.year or date.today().year, month=self.month, day=self.day)
 
 
