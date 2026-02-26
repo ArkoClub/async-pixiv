@@ -22,6 +22,9 @@ class NovelPageResult(PageResult[Novel]):
 
 
 class NovelAPI(APIBase):
+    _detail_model = NovelDetail
+    _page_result_model = NovelPageResult
+
     async def search(
         self,
         words,

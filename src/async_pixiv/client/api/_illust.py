@@ -23,6 +23,9 @@ class IllustPageResult(PageResult[Illust]):
 
 
 class IllustAPI(APIBase):
+    _detail_model = IllustDetail
+    _page_result_model = IllustPageResult
+
     async def search(
         self,
         words,

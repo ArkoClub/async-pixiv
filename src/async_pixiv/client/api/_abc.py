@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from importlib import import_module
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, ClassVar, Sequence
 
 from pydantic_core._pydantic_core import ValidationError
 
@@ -17,22 +16,27 @@ from async_pixiv.utils.context import get_pixiv_client, set_pixiv_client
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
 
-__all__ = ("APIBase",)
+__all__ = ("API_SECTION_REGISTRY", "APIBase")
 
-_TYPE_CACHE: dict[str, type[PageResult | PixivModel]] = {}
+API_SECTION_REGISTRY: dict[str, type[APIBase]] = {}
 
 
 # noinspection PyShadowingBuiltins,PyPropertyDefinition
 class APIBase[T](ABC):
     _pixiv_client: PixivClient
     _type: str
+    _detail_model: ClassVar[type[PixivModel] | None] = None
+    _page_result_model: ClassVar[type[PageResult] | None] = None
 
     @property
     def type(self) -> str:
         return self._type
 
     def __init_subclass__(cls, **kwargs) -> None:
-        cls._type = cls.__name__.removesuffix("API").lower()
+        super().__init_subclass__(**kwargs)
+        section_type = cls.__name__.removesuffix("API")
+        cls._type = section_type.lower()
+        API_SECTION_REGISTRY[section_type] = cls
 
     def __init__(
         self,
@@ -46,13 +50,19 @@ class APIBase[T](ABC):
     async def __call__(self, id: int) -> T:
         return await self.detail(id)
 
-    def _resolve_type(self, type_name: str) -> type[PageResult | PixivModel]:
-        if type_name not in _TYPE_CACHE:
-            _TYPE_CACHE[type_name] = getattr(
-                import_module(f"async_pixiv.client.api._{self._type}"),
-                type_name,
+    def _get_detail_model(self) -> type[PixivModel]:
+        if self._detail_model is None:
+            raise RuntimeError(
+                f"No detail model registered for {self.__class__.__name__}"
             )
-        return _TYPE_CACHE[type_name]
+        return self._detail_model
+
+    def _get_page_result_model(self) -> type[PageResult]:
+        if self._page_result_model is None:
+            raise RuntimeError(
+                f"No page result model registered for {self.__class__.__name__}"
+            )
+        return self._page_result_model
 
     async def detail(self, id: int) -> T:
         response = await self._pixiv_client.request_get(
@@ -62,7 +72,7 @@ class APIBase[T](ABC):
         response.raise_for_result().raise_for_status()
 
         json_data = response.json()
-        obj_type = self._resolve_type(f"{self.type.title()}Detail")
+        obj_type = self._get_detail_model()
         with set_pixiv_client(self._pixiv_client):
             try:
                 return obj_type.model_validate(json_data)
@@ -92,7 +102,7 @@ class APIBase[T](ABC):
         )
         response.raise_error()
 
-        result_type = self._resolve_type(f"{self.type.title()}PageResult")
+        result_type = self._get_page_result_model()
         with set_pixiv_client(self._pixiv_client):
             return result_type.model_validate(response.json())
 
@@ -102,6 +112,6 @@ class APIBase[T](ABC):
         )
         response.raise_for_result().raise_for_status()
 
-        result_type = self._resolve_type(f"{self.type.title()}PageResult")
+        result_type = self._get_page_result_model()
         with set_pixiv_client(self._pixiv_client):
             return result_type.model_validate(response.json())

@@ -28,4 +28,5 @@ class UserPageResult(PageResult[UserPreview]):
 
 
 class UserAPI(APIBase):
-    pass
+    _detail_model = UserDetail
+    _page_result_model = UserPageResult

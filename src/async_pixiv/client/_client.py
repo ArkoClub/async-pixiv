@@ -1,7 +1,6 @@
 import asyncio
 import os
 from functools import cached_property, partial
-from importlib import import_module
 from inspect import iscoroutinefunction
 from io import BytesIO
 from pathlib import Path
@@ -9,6 +8,7 @@ from typing import TYPE_CHECKING, Literal
 
 from async_pixiv._compat import json_loads as default_json_loads
 from async_pixiv.client._net import AsyncClient, Retry
+from async_pixiv.client.api import API_SECTION_REGISTRY
 from async_pixiv.model.user import Account
 from async_pixiv.utils.context import PixivClientContext, TimezoneContext
 
@@ -209,10 +209,9 @@ class PixivClient(PixivClientNet):
     ) -> "APIBase":
         section = self._sections.get(section_type, None)
         if section is None:
-            api_type_name = f"{section_type}API"
-            module_name = f"async_pixiv.client.api._{section_type.lower()}"
-            module = import_module(module_name)
-            api_type: type[APIBase] = getattr(module, api_type_name)
+            api_type = API_SECTION_REGISTRY.get(section_type)
+            if api_type is None:
+                raise KeyError(f"Unknown API section: {section_type}")
             self._sections[section_type] = api_type(self)
         return self._sections[section_type]
 
