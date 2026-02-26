@@ -7,14 +7,10 @@ from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
+from async_pixiv._compat import json_loads as default_json_loads
 from async_pixiv.client._net import AsyncClient, Retry
 from async_pixiv.model.user import Account
 from async_pixiv.utils.context import PixivClientContext, TimezoneContext
-
-try:
-    from orjson import loads as default_json_loads
-except ImportError:
-    from json import loads as default_json_loads
 
 # noinspection PyProtectedMember
 if TYPE_CHECKING:

@@ -1,22 +1,14 @@
 from pydantic import Field
 
 # noinspection PyProtectedMember
+from async_pixiv._compat import json_loads, re
 from async_pixiv.client.api._abc import APIBase
 from async_pixiv.const import APP_API_HOST
 from async_pixiv.model import PixivModel
 from async_pixiv.model.novel import Novel, NovelText
-from async_pixiv.model.other.enums import SearchShort, SearchTarget
+from async_pixiv.model.other.enums import SearchFilter, SearchShort, SearchTarget
 from async_pixiv.model.other.result import PageResult
 from async_pixiv.utils.context import set_pixiv_client
-
-try:
-    import regex as re
-except ImportError:
-    import re
-try:
-    import orjson as jsonlib
-except ImportError:
-    import json as jsonlib
 
 __all__ = ("NovelAPI", "NovelDetail", "NovelPageResult")
 
@@ -58,10 +50,6 @@ class NovelAPI(APIBase):
 
     # noinspection PyShadowingBuiltins
     async def detail(self, id):
-        # noinspection PyProtectedMember
-        from async_pixiv.model.other.enums import SearchFilter
-        from async_pixiv.utils.context import set_pixiv_client
-
         response = await self._pixiv_client.request_get(
             APP_API_HOST / f"v2/{self._type}/detail",
             params={f"{self._type}_id": id, "filter": SearchFilter.ANDROID},
@@ -83,7 +71,7 @@ class NovelAPI(APIBase):
             .groups()[0]
             .encode()
         )
-        json_data = jsonlib.loads(json_content)
+        json_data = json_loads(json_content)
 
         json_data["series"] = {
             "id": json_data["seriesId"],

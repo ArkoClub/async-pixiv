@@ -22,6 +22,7 @@ from httpx._types import (
 )
 from yarl import URL
 
+from async_pixiv._compat import json_loads as default_json_loads
 from async_pixiv.client._response import Response
 from async_pixiv.client._transport import (
     BypassPixivAsyncHTTPTransport,
@@ -30,11 +31,6 @@ from async_pixiv.client._transport import (
 from async_pixiv.error import RateLimitError
 from async_pixiv.typedefs import UrlType
 from async_pixiv.utils.rate_limiter import RateLimiter
-
-try:
-    from orjson import loads as default_json_loads
-except ImportError:
-    from json import loads as default_json_loads
 
 __all__ = (
     "AsyncClient",

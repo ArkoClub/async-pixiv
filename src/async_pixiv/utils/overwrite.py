@@ -26,6 +26,7 @@ from httpx._transports.default import (
     map_httpcore_exceptions,
 )
 
+from async_pixiv._compat import json_loads
 from async_pixiv.error import (
     APIError,
     InvalidRefreshToken,
@@ -33,11 +34,6 @@ from async_pixiv.error import (
     PixivError,
     RateLimitError,
 )
-
-try:
-    from orjson import loads as json_loads
-except ImportError:
-    from json import loads as json_loads
 
 __all__ = ("AsyncClient", "AsyncHTTPTransport", "HTTPTransport", "Response")
 

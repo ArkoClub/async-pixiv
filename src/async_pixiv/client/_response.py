@@ -3,6 +3,7 @@ from typing import Any, Self
 
 from httpx import Response as DefaultResponse
 
+from async_pixiv._compat import json_loads as default_json_loads
 from async_pixiv.error import (
     APIError,
     InvalidRefreshToken,
@@ -10,12 +11,6 @@ from async_pixiv.error import (
     PixivError,
     RateLimitError,
 )
-
-try:
-    from orjson import loads as default_json_loads
-except ImportError:
-    from json import loads as default_json_loads
-
 
 __all__ = ("Response",)
 

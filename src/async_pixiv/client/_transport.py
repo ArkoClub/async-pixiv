@@ -23,17 +23,9 @@ from httpx._transports.default import (
     map_httpcore_exceptions,
 )
 
+from async_pixiv._compat import json_loads as default_json_loads
+from async_pixiv._compat import re
 from async_pixiv.client._response import Response
-
-try:
-    from orjson import loads as default_json_loads
-except ImportError:
-    from json import loads as default_json_loads
-
-try:
-    import regex as re
-except ImportError:
-    import re
 
 __all__ = (
     "BypassPixivAsyncHTTPTransport",
