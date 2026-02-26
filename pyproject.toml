@@ -77,6 +77,20 @@ log_cli_level = "INFO"
 log_cli_format = "%(message)s"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I", "UP", "RUF", "ASYNC", "S", "C901"]
+ignore = [
+    "S105",    # hardcoded password (pixiv client secret is public)
+    "UP035",   # deprecated-import (compatibility)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
