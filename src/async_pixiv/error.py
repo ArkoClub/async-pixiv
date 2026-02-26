@@ -14,7 +14,7 @@ __all__ = (
     "APIError",
     "RateLimitError",
     "NotExistError",
-    "DataValidationError"
+    "DataValidationError",
 )
 
 
@@ -27,8 +27,13 @@ class PixivError(Exception):
     def __init_subclass__(cls, **kwargs) -> None:
         cls.__module__ = "async_pixiv.error"
 
-    def __eq__(self, other: Exception) -> bool:
-        return self == other
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PixivError):
+            return NotImplemented
+        return self.message == other.message
+
+    def __hash__(self) -> int:
+        return hash((self.__class__.__name__, self.message))
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}: {self.message!r}"
@@ -61,7 +66,7 @@ class StatusError(PixivError):
         self.response = response
         try:
             response_json = response.json()
-        except _:  # noqa: F821
+        except Exception:
             response_json = None
 
         if response_json is not None:
@@ -96,6 +101,7 @@ class RateLimitError(APIError):
 
 class NotExistError(StatusError):
     message = "作品不存在或无浏览权限"
+
 
 class DataValidationError(APIError):
     message = "Data validation failed."

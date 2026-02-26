@@ -1,5 +1,4 @@
 import asyncio
-from functools import lru_cache
 from logging import getLogger
 
 from httpx import (
@@ -8,8 +7,10 @@ from httpx import (
     QueryParams,
     Request,
 )
+
 # noinspection PyProtectedMember
 from httpx._client import ClientState, USE_CLIENT_DEFAULT, UseClientDefault
+
 # noinspection PyProtectedMember
 from httpx._types import (
     HeaderTypes,
@@ -159,13 +160,20 @@ class AsyncClient(DefaultAsyncClient):
                     await asyncio.sleep(self.retry.sleep)
                     n += 1
 
-    @lru_cache(64)
     def _merge_url(self, url):
-        return str(
-            super(AsyncClient, self)._merge_url(
-                url if isinstance(url, str) else str(url)
+        if not hasattr(self, "_merge_url_cache"):
+            self._merge_url_cache = {}
+        cache = self._merge_url_cache
+        key = str(url)
+        if key not in cache:
+            cache[key] = str(
+                super(AsyncClient, self)._merge_url(
+                    url if isinstance(url, str) else str(url)
+                )
             )
-        )
+            if len(cache) > 64:
+                cache.pop(next(iter(cache)))
+        return cache[key]
 
     def build_request(
         self,

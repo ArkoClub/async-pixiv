@@ -69,8 +69,8 @@ class APIBase[T](ABC):
         with set_pixiv_client(self._pixiv_client):
             try:
                 return obj_type.model_validate(json_data)
-            except ValidationError:
-                raise DataValidationError(json_data)
+            except ValidationError as exc:
+                raise DataValidationError(json_data) from exc
 
     async def search(
         self,

@@ -98,6 +98,8 @@ class PixivClientNet:
     async def download(
         self, url, method="GET", *, output=None, chunk_size=None, progress_handler=None
     ):
+        _background_tasks = set()
+
         async def handle_progress(_uploaded, _total, _progress_handler):
             if _progress_handler is None:
                 return
@@ -107,7 +109,11 @@ class PixivClientNet:
                 _progress_handler(_uploaded, _total)
 
         def add_handle_progress_task(_uploaded, _total):
-            asyncio.create_task(handle_progress(_uploaded, _total, progress_handler))
+            task = asyncio.create_task(
+                handle_progress(_uploaded, _total, progress_handler)
+            )
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
 
         chunk_size = chunk_size or 2**20
         async with self._client.stream(

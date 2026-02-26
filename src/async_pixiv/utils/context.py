@@ -71,8 +71,7 @@ def get_pixiv_client(raise_error: bool = False) -> Optional["PixivClient"]:
 
         if not raise_error:
             return None
-        else:
-            raise ClientNotFindError()
+        raise ClientNotFindError() from None
 
 
 @contextmanager

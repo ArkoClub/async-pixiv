@@ -1,6 +1,6 @@
 import warnings
 from asyncio import Event
-from functools import cache, cached_property
+from functools import cached_property
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal, Union, overload
@@ -48,6 +48,9 @@ class IllustType(Enum):
                 return self.value == str(other)
             except (TypeError, ValueError):
                 return False
+
+    def __hash__(self) -> int:
+        return hash(self.value)
 
 
 class IllustMetaSinglePage(PixivModel):
@@ -102,9 +105,12 @@ class Illust(PixivModel):
         else:
             return [i.image_urls for i in self.meta_pages]
 
-    @cache
     async def get_ugoira_metadata(self) -> UgoiraMetadata:
-        return (await self._pixiv_client.ILLUST.ugoira_metadata(self.id)).metadata
+        if not hasattr(self, "_ugoira_metadata_cache"):
+            self._ugoira_metadata_cache = (
+                await self._pixiv_client.ILLUST.ugoira_metadata(self.id)
+            ).metadata
+        return self._ugoira_metadata_cache
 
     async def download(
         self,

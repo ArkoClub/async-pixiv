@@ -33,7 +33,7 @@ __all__ = ("Net",)
 
 QueryParamTypes = TypeVar(
     "QueryParamTypes",
-    bound=Union[_QueryParamTypes, Mapping[str, Union[Enum, PixivEnum, "SearchFilter"]]],
+    bound=Union[_QueryParamTypes, Mapping[str, Union[Enum, PixivEnum]]],
 )
 
 logger = getLogger(__name__)

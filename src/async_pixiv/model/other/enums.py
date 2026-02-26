@@ -1,5 +1,4 @@
 from async_pixiv.typedefs import Enum
-import enum
 
 __all__ = (
     "Quality",

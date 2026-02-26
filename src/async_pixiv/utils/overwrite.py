@@ -10,7 +10,6 @@ from httpx import (
     Response as DefaultResponse,
     SyncByteStream,
 )
-from functools import lru_cache
 
 # noinspection PyProtectedMember
 from httpx._transports.default import (
@@ -63,7 +62,6 @@ class Response(DefaultResponse):
                 raise RESULT_ERROR_MAP.get(error["message"], APIError)(error)
         return self
 
-    @lru_cache(maxsize=8)
     def json(self, **kwargs: Any) -> dict[str, Any]:
         if self._json_data is None:
             self._json_data = json_loads(self.content, **kwargs)
