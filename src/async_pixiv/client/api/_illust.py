@@ -18,8 +18,8 @@ class IllustDetail(PixivModel):
 
 class IllustPageResult(PageResult[Illust]):
     previews: list[Illust] = Field([], alias="illusts")
-    search_span_limit: int
-    show_ai: bool
+    search_span_limit: int = 0
+    show_ai: bool = False
 
 
 class IllustAPI(APIBase):
@@ -66,9 +66,7 @@ class IllustAPI(APIBase):
 
     # noinspection PyShadowingBuiltins
     async def ugoira_metadata(self, id: int) -> UgoiraMetadataResult:
-        response = await self._pixiv_client.request_get(
-            APP_API_HOST / "v1/ugoira/metadata", params={"illust_id": id}
-        )
+        response = await self._pixiv_client.request_get(APP_API_HOST / "v1/ugoira/metadata", params={"illust_id": id})
         response.raise_for_result().raise_for_status()
         with set_pixiv_client(self._pixiv_client):
             return UgoiraMetadataResult.model_validate(response.json())
