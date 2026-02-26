@@ -49,6 +49,15 @@ class APIBase[T](ABC):
     async def __call__(self, id: int) -> T:
         return await self.detail(id)
 
+    def _resolve_type(self, type_name: str) -> type[PageResult | PixivModel]:
+        with self._lock:
+            if type_name not in _TYPE_CATCH_DICT:
+                _TYPE_CATCH_DICT[type_name] = getattr(
+                    import_module(f"async_pixiv.client.api._{self._type}"),
+                    type_name,
+                )
+        return _TYPE_CATCH_DICT[type_name]
+
     async def detail(self, id: int) -> T:
         response = await self._pixiv_client.request_get(
             APP_API_HOST / f"v1/{self._type}/detail",
@@ -57,15 +66,7 @@ class APIBase[T](ABC):
         response.raise_for_result().raise_for_status()
 
         json_data = response.json()
-        obj_type_name = self.type.title() + "Detail"
-
-        with self._lock:
-            if obj_type_name not in _TYPE_CATCH_DICT:
-                _TYPE_CATCH_DICT[obj_type_name] = import_module(
-                    f"async_pixiv.client.api._{self._type}"
-                ).__getattribute__(obj_type_name)
-
-        obj_type = _TYPE_CATCH_DICT[obj_type_name]
+        obj_type = self._resolve_type(f"{self.type.title()}Detail")
         with set_pixiv_client(self._pixiv_client):
             try:
                 return obj_type.model_validate(json_data)
@@ -95,17 +96,9 @@ class APIBase[T](ABC):
         )
         response.raise_error()
 
-        search_result_type_name = f"{self.type.title()}PageResult"
-
-        with self._lock:
-            if search_result_type_name not in _TYPE_CATCH_DICT:
-                _TYPE_CATCH_DICT[search_result_type_name] = import_module(
-                    f"async_pixiv.client.api._{self._type}"
-                ).__getattribute__(search_result_type_name)
-
-        search_result_type = _TYPE_CATCH_DICT[search_result_type_name]
+        result_type = self._resolve_type(f"{self.type.title()}PageResult")
         with set_pixiv_client(self._pixiv_client):
-            return search_result_type.model_validate(response.json())
+            return result_type.model_validate(response.json())
 
     async def recommended(self) -> PageResult:
         response = await self._pixiv_client.request_get(
@@ -113,14 +106,6 @@ class APIBase[T](ABC):
         )
         response.raise_for_result().raise_for_status()
 
-        search_result_type_name = f"{self.type.title()}PageResult"
-
-        with self._lock:
-            if search_result_type_name not in _TYPE_CATCH_DICT:
-                _TYPE_CATCH_DICT[search_result_type_name] = import_module(
-                    f"async_pixiv.client.api._{self._type}"
-                ).__getattribute__(search_result_type_name)
-
-        search_result_type = _TYPE_CATCH_DICT[search_result_type_name]
+        result_type = self._resolve_type(f"{self.type.title()}PageResult")
         with set_pixiv_client(self._pixiv_client):
-            return search_result_type.model_validate(response.json())
+            return result_type.model_validate(response.json())
