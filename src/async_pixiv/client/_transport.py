@@ -1,6 +1,5 @@
 import ssl
 from logging import getLogger
-from threading import Lock
 from types import TracebackType
 from typing import AsyncIterable, Iterable
 
@@ -84,14 +83,12 @@ class PixivAsyncHTTPTransport(DefaultAsyncHTTPTransport):
 class DNSResolver:
     """DNS resolver for BypassPixivAsyncHTTPTransport."""
 
-    _lock: Lock = Lock()
     _client = None
 
     @property
     def client(self):
-        with self._lock:
-            if self._client is None or self._client.is_closed:
-                self._client = AsyncClient()
+        if self._client is None or self._client.is_closed:
+            self._client = AsyncClient()
         return self._client
 
     def __init__(

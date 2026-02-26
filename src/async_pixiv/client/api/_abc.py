@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import ABC
 from importlib import import_module
-from threading import RLock as Lock
 from typing import TYPE_CHECKING, Sequence
 
 from pydantic_core._pydantic_core import ValidationError
@@ -20,13 +19,11 @@ if TYPE_CHECKING:
 
 __all__ = ("APIBase",)
 
-_TYPE_CATCH_DICT: dict[str, type[PageResult | PixivModel]] = {}
+_TYPE_CACHE: dict[str, type[PageResult | PixivModel]] = {}
 
 
 # noinspection PyShadowingBuiltins,PyPropertyDefinition
 class APIBase[T](ABC):
-    _lock: Lock = Lock()
-
     _pixiv_client: PixivClient
     _type: str
 
@@ -50,13 +47,12 @@ class APIBase[T](ABC):
         return await self.detail(id)
 
     def _resolve_type(self, type_name: str) -> type[PageResult | PixivModel]:
-        with self._lock:
-            if type_name not in _TYPE_CATCH_DICT:
-                _TYPE_CATCH_DICT[type_name] = getattr(
-                    import_module(f"async_pixiv.client.api._{self._type}"),
-                    type_name,
-                )
-        return _TYPE_CATCH_DICT[type_name]
+        if type_name not in _TYPE_CACHE:
+            _TYPE_CACHE[type_name] = getattr(
+                import_module(f"async_pixiv.client.api._{self._type}"),
+                type_name,
+            )
+        return _TYPE_CACHE[type_name]
 
     async def detail(self, id: int) -> T:
         response = await self._pixiv_client.request_get(
