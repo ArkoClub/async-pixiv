@@ -53,8 +53,8 @@ class NovelAPI(APIBase):
     # noinspection PyShadowingBuiltins
     async def detail(self, id):
         response = await self._pixiv_client.request_get(
-            APP_API_HOST / f"v2/{self._type}/detail",
-            params={f"{self._type}_id": id, "filter": SearchFilter.ANDROID},
+            APP_API_HOST / f"v2/{self.type}/detail",
+            params={f"{self.type}_id": id, "filter": SearchFilter.ANDROID},
         )
         response.raise_for_status().raise_for_result()
         return NovelDetail.model_validate(

@@ -1,23 +1,18 @@
 import asyncio
 import os
-from functools import cached_property, partial
 from inspect import iscoroutinefunction
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from async_pixiv._compat import json_loads as default_json_loads
 from async_pixiv.client._net import AsyncClient, Retry
-from async_pixiv.client.api import API_SECTION_REGISTRY
+from async_pixiv.client.api import IllustAPI, NovelAPI, UserAPI
 from async_pixiv.model.user import Account
 from async_pixiv.utils.context import TimezoneContext
 
 # noinspection PyProtectedMember
 if TYPE_CHECKING:
-    from async_pixiv.client.api._abc import APIBase
-    from async_pixiv.client.api._illust import IllustAPI
-    from async_pixiv.client.api._novel import NovelAPI
-    from async_pixiv.client.api._user import UserAPI
     from async_pixiv.utils.overwrite import Response
 
 
@@ -139,6 +134,9 @@ class PixivClientNet:
 # noinspection PyPropertyDefinition
 class PixivClient(PixivClientNet):
     account = None
+    USER: UserAPI
+    ILLUST: IllustAPI
+    NOVEL: NovelAPI
 
     @property
     def is_logged(self) -> bool:
@@ -165,7 +163,6 @@ class PixivClient(PixivClientNet):
         json_loads=default_json_loads,
         timezone=None,
     ):
-        self._sections = {}
         self._client = AsyncClient(
             limiter=limiter,
             proxy=proxy,
@@ -175,6 +172,9 @@ class PixivClient(PixivClientNet):
             json_loads=json_loads,
             retry=Retry(times=retry_times, sleep=retry_sleep),
         )
+        self.USER = UserAPI(self)
+        self.ILLUST = IllustAPI(self)
+        self.NOVEL = NovelAPI(self)
         self._timezone_token = TimezoneContext.set(timezone)
 
     async def login_with_token(self, token=None) -> Account:
@@ -201,18 +201,3 @@ class PixivClient(PixivClientNet):
     async def close(self) -> None:
         TimezoneContext.reset(self._timezone_token)
         await super().close()
-
-    def _get_section(
-        self, section_type: Literal["User", "Illust", "Novel", "Manga"]
-    ) -> "APIBase":
-        section = self._sections.get(section_type, None)
-        if section is None:
-            api_type = API_SECTION_REGISTRY.get(section_type)
-            if api_type is None:
-                raise KeyError(f"Unknown API section: {section_type}")
-            self._sections[section_type] = api_type(self)
-        return self._sections[section_type]
-
-    USER: "UserAPI" = cached_property(partial(_get_section, section_type="User"))
-    ILLUST: "IllustAPI" = cached_property(partial(_get_section, section_type="Illust"))
-    NOVEL: "NovelAPI" = cached_property(partial(_get_section, section_type="Novel"))

@@ -15,27 +15,18 @@ from async_pixiv.typedefs import DurationTypes, ShortTypes
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
 
-__all__ = ("API_SECTION_REGISTRY", "APIBase")
-
-API_SECTION_REGISTRY: dict[str, type[APIBase]] = {}
+__all__ = ("APIBase",)
 
 
 # noinspection PyShadowingBuiltins,PyPropertyDefinition
 class APIBase[T](ABC):
     _pixiv_client: PixivClient
-    _type: str
     _detail_model: ClassVar[type[PixivModel] | None] = None
     _page_result_model: ClassVar[type[PageResult] | None] = None
 
     @property
     def type(self) -> str:
-        return self._type
-
-    def __init_subclass__(cls, **kwargs) -> None:
-        super().__init_subclass__(**kwargs)
-        section_type = cls.__name__.removesuffix("API")
-        cls._type = section_type.lower()
-        API_SECTION_REGISTRY[section_type] = cls
+        return self.__class__.__name__.removesuffix("API").lower()
 
     def __init__(
         self,
@@ -62,8 +53,8 @@ class APIBase[T](ABC):
 
     async def detail(self, id: int) -> T:
         response = await self._pixiv_client.request_get(
-            APP_API_HOST / f"v1/{self._type}/detail",
-            params={f"{self._type}_id": id, "filter": SearchFilter.ANDROID},
+            APP_API_HOST / f"v1/{self.type}/detail",
+            params={f"{self.type}_id": id, "filter": SearchFilter.ANDROID},
         )
         response.raise_for_result().raise_for_status()
 
