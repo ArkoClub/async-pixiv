@@ -5,11 +5,12 @@ from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import tzlocal
+
 from async_pixiv._compat import json_loads as default_json_loads
 from async_pixiv.client._net import AsyncClient, Retry
 from async_pixiv.client.api import IllustAPI, NovelAPI, UserAPI
 from async_pixiv.model.user import Account
-from async_pixiv.utils.context import TimezoneContext
 
 # noinspection PyProtectedMember
 if TYPE_CHECKING:
@@ -175,7 +176,7 @@ class PixivClient(PixivClientNet):
         self.USER = UserAPI(self)
         self.ILLUST = IllustAPI(self)
         self.NOVEL = NovelAPI(self)
-        self._timezone_token = TimezoneContext.set(timezone)
+        self.timezone = timezone or tzlocal.get_localzone()
 
     async def login_with_token(self, token=None) -> Account:
         if token is None:
@@ -199,5 +200,4 @@ class PixivClient(PixivClientNet):
         return self.account
 
     async def close(self) -> None:
-        TimezoneContext.reset(self._timezone_token)
         await super().close()

@@ -27,15 +27,21 @@ class PixivModel(BaseModel):
         cls, *args, _pixiv_client: "PixivClient" | None = None, **kwargs
     ) -> Self:
         cls.model_rebuild()
+        context = kwargs.pop("context", None)
+        if _pixiv_client is not None:
+            if context is None:
+                context = {"timezone": _pixiv_client.timezone}
+            elif isinstance(context, dict):
+                context = dict(context)
+                context.setdefault("timezone", _pixiv_client.timezone)
+
+        if context is not None:
+            kwargs["context"] = context
+
         model: Self = super().model_validate(*args, **kwargs)
         if _pixiv_client is not None:
             model._bind_client(_pixiv_client)
         return model
-
-    def __init__(self, _pixiv_client: "PixivClient" | None = None, **data: Any) -> None:
-        super().__init__(**data)
-        if _pixiv_client is not None:
-            self._bind_client(_pixiv_client)
 
     def _bind_client(
         self,

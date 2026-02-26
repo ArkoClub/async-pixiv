@@ -15,11 +15,10 @@ from typing import (
 )
 
 import tzlocal
-from pydantic import AfterValidator, PlainValidator
+from pydantic import AfterValidator, PlainValidator, ValidationInfo
 from yarl import URL as _URL
 
 from async_pixiv.error import ClientNotFindError
-from async_pixiv.utils.context import get_timezone
 from async_pixiv.utils.magic import curses
 
 __all__ = (
@@ -113,8 +112,17 @@ class Enum(BaseEnum):
 EnumType = TypeVar("EnumType", bound=Enum | BaseEnum)
 
 
-def _datetime_validator(value: datetime.datetime) -> datetime.datetime:
-    return value.astimezone(get_timezone() or tzlocal.get_localzone())
+def _datetime_validator(
+    value: datetime.datetime,
+    info: ValidationInfo,
+) -> datetime.datetime:
+    timezone = None
+    if isinstance(info.context, dict):
+        timezone = info.context.get("timezone")
+
+    if timezone is None:
+        timezone = tzlocal.get_localzone()
+    return value.astimezone(timezone)
 
 
 Datetime = Annotated[datetime.datetime, AfterValidator(_datetime_validator)]
