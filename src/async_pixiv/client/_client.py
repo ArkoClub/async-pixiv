@@ -47,33 +47,34 @@ class PixivClientNet:
             ),
         }
 
-    async def _request_method(self, method: str, *args, headers=None, **kwargs):
-        fn = getattr(self._client, method)
-        return await fn(*args, headers=self._update_header(headers), **kwargs)
-
-    async def request(self, *args, headers=None, **kwargs):
-        return await self._request_method("request", *args, headers=headers, **kwargs)
+    async def request(self, method: str, *args, headers=None, **kwargs):
+        return await self._client.request(
+            method,
+            *args,
+            headers=self._update_header(headers),
+            **kwargs,
+        )
 
     async def request_get(self, *args, headers=None, **kwargs):
-        return await self._request_method("get", *args, headers=headers, **kwargs)
+        return await self.request("GET", *args, headers=headers, **kwargs)
 
     async def request_options(self, *args, headers=None, **kwargs):
-        return await self._request_method("options", *args, headers=headers, **kwargs)
+        return await self.request("OPTIONS", *args, headers=headers, **kwargs)
 
     async def request_head(self, *args, headers=None, **kwargs):
-        return await self._request_method("head", *args, headers=headers, **kwargs)
+        return await self.request("HEAD", *args, headers=headers, **kwargs)
 
     async def request_post(self, *args, headers=None, **kwargs):
-        return await self._request_method("post", *args, headers=headers, **kwargs)
+        return await self.request("POST", *args, headers=headers, **kwargs)
 
     async def request_put(self, *args, headers=None, **kwargs):
-        return await self._request_method("put", *args, headers=headers, **kwargs)
+        return await self.request("PUT", *args, headers=headers, **kwargs)
 
     async def request_patch(self, *args, headers=None, **kwargs):
-        return await self._request_method("patch", *args, headers=headers, **kwargs)
+        return await self.request("PATCH", *args, headers=headers, **kwargs)
 
     async def request_delete(self, *args, headers=None, **kwargs):
-        return await self._request_method("delete", *args, headers=headers, **kwargs)
+        return await self.request("DELETE", *args, headers=headers, **kwargs)
 
     async def download(
         self, url, method="GET", *, output=None, chunk_size=None, progress_handler=None
