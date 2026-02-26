@@ -8,7 +8,6 @@ from async_pixiv.model import PixivModel
 from async_pixiv.model.novel import Novel, NovelText
 from async_pixiv.model.other.enums import SearchFilter, SearchShort, SearchTarget
 from async_pixiv.model.other.result import PageResult
-from async_pixiv.utils.context import set_pixiv_client
 
 __all__ = ("NovelAPI", "NovelDetail", "NovelPageResult")
 
@@ -58,9 +57,10 @@ class NovelAPI(APIBase):
             params={f"{self._type}_id": id, "filter": SearchFilter.ANDROID},
         )
         response.raise_for_status().raise_for_result()
-
-        with set_pixiv_client(self._pixiv_client):
-            return NovelDetail.model_validate(response.json())
+        return NovelDetail.model_validate(
+            response.json(),
+            _pixiv_client=self._pixiv_client,
+        )
 
     # noinspection PyShadowingBuiltins
     async def text(self, id, *, viewer_version="20221031_ai"):
@@ -105,6 +105,7 @@ class NovelAPI(APIBase):
         json_data["images"] = list(
             json_data["images"].values() if json_data["images"] else []
         )
-
-        with set_pixiv_client(self._pixiv_client):
-            return NovelText.model_validate(json_data)
+        return NovelText.model_validate(
+            json_data,
+            _pixiv_client=self._pixiv_client,
+        )

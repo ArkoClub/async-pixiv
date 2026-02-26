@@ -6,7 +6,6 @@ from pydantic import Field
 from async_pixiv.model._base import PixivModel
 from async_pixiv.model.other.image import QualityUrl
 from async_pixiv.typedefs import UrlType
-from async_pixiv.utils.context import set_pixiv_client
 
 
 class PageResult[T](ABC, PixivModel):
@@ -18,9 +17,12 @@ class PageResult[T](ABC, PixivModel):
 
     async def next(self) -> Self | None:
         if self.next_url is not None:
-            with set_pixiv_client(self._require_client()) as client:
-                response = await client.request_get(self.next_url)
-                return self.__class__.model_validate(response.raise_error().json())
+            client = self._require_client()
+            response = await client.request_get(self.next_url)
+            return self.__class__.model_validate(
+                response.raise_error().json(),
+                _pixiv_client=client,
+            )
         return None
 
     async def iter_all_pages(self) -> AsyncIterator[T]:

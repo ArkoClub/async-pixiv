@@ -7,7 +7,6 @@ from async_pixiv.const import APP_API_HOST
 from async_pixiv.model import Illust, PixivModel, SearchAIType
 from async_pixiv.model.other.enums import SearchShort, SearchTarget
 from async_pixiv.model.other.result import PageResult, UgoiraMetadataResult
-from async_pixiv.utils.context import set_pixiv_client
 
 __all__ = ("IllustAPI", "IllustDetail", "IllustPageResult")
 
@@ -73,5 +72,7 @@ class IllustAPI(APIBase):
             APP_API_HOST / "v1/ugoira/metadata", params={"illust_id": id}
         )
         response.raise_for_result().raise_for_status()
-        with set_pixiv_client(self._pixiv_client):
-            return UgoiraMetadataResult.model_validate(response.json())
+        return UgoiraMetadataResult.model_validate(
+            response.json(),
+            _pixiv_client=self._pixiv_client,
+        )

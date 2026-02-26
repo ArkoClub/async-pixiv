@@ -6,12 +6,11 @@ from typing import TYPE_CHECKING, ClassVar, Sequence
 from pydantic_core._pydantic_core import ValidationError
 
 from async_pixiv.const import APP_API_HOST
-from async_pixiv.error import ClientNotFindError, DataValidationError
+from async_pixiv.error import DataValidationError
 from async_pixiv.model import PixivModel
 from async_pixiv.model.other.enums import SearchAIType, SearchFilter
 from async_pixiv.model.other.result import PageResult
 from async_pixiv.typedefs import DurationTypes, ShortTypes
-from async_pixiv.utils.context import get_pixiv_client, set_pixiv_client
 
 if TYPE_CHECKING:
     from async_pixiv.client import PixivClient
@@ -40,11 +39,8 @@ class APIBase[T](ABC):
 
     def __init__(
         self,
-        client: PixivClient | None = None,
+        client: PixivClient,
     ) -> None:
-        client = client or get_pixiv_client()
-        if client is None:
-            raise ClientNotFindError()
         self._pixiv_client = client
 
     async def __call__(self, id: int) -> T:
@@ -73,11 +69,10 @@ class APIBase[T](ABC):
 
         json_data = response.json()
         obj_type = self._get_detail_model()
-        with set_pixiv_client(self._pixiv_client):
-            try:
-                return obj_type.model_validate(json_data)
-            except ValidationError as exc:
-                raise DataValidationError(json_data) from exc
+        try:
+            return obj_type.model_validate(json_data, _pixiv_client=self._pixiv_client)
+        except ValidationError as exc:
+            raise DataValidationError(json_data) from exc
 
     async def search(
         self,
@@ -103,8 +98,10 @@ class APIBase[T](ABC):
         response.raise_error()
 
         result_type = self._get_page_result_model()
-        with set_pixiv_client(self._pixiv_client):
-            return result_type.model_validate(response.json())
+        return result_type.model_validate(
+            response.json(),
+            _pixiv_client=self._pixiv_client,
+        )
 
     async def recommended(self) -> PageResult:
         response = await self._pixiv_client.request_get(
@@ -113,5 +110,7 @@ class APIBase[T](ABC):
         response.raise_for_result().raise_for_status()
 
         result_type = self._get_page_result_model()
-        with set_pixiv_client(self._pixiv_client):
-            return result_type.model_validate(response.json())
+        return result_type.model_validate(
+            response.json(),
+            _pixiv_client=self._pixiv_client,
+        )

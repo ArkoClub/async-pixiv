@@ -4,26 +4,18 @@ from contextvars import ContextVar
 from copy import deepcopy
 from typing import TYPE_CHECKING, Iterator, Optional
 
-from async_pixiv.error import ClientNotFindError
-
 if TYPE_CHECKING:
     from pytz.tzinfo import DstTzInfo
 
-    from async_pixiv.client import PixivClient
-
 __all__ = (
-    "PixivClientContext",
     "TimezoneContext",
     "async_do_nothing",
     "do_nothing",
-    "get_pixiv_client",
     "get_timezone",
     "no_warning",
-    "set_pixiv_client",
     "set_timezone",
 )
 
-PixivClientContext: ContextVar["PixivClient"] = ContextVar("PixivClientContext")
 TimezoneContext: ContextVar["DstTzInfo"] = ContextVar("timezone")
 
 
@@ -54,24 +46,6 @@ def no_warning() -> Iterator[None]:
         for f in filters:
             # noinspection PyUnresolvedReferences
             warnings.filters.append(f)
-
-
-@contextmanager
-def set_pixiv_client(client: "PixivClient") -> Iterator["PixivClient"]:
-    token = PixivClientContext.set(client)
-    try:
-        yield client
-    finally:
-        PixivClientContext.reset(token)
-
-
-def get_pixiv_client(raise_error: bool = False) -> Optional["PixivClient"]:
-    try:
-        return PixivClientContext.get()
-    except LookupError:
-        if not raise_error:
-            return None
-        raise ClientNotFindError() from None
 
 
 @contextmanager

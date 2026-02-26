@@ -10,7 +10,7 @@ from async_pixiv._compat import json_loads as default_json_loads
 from async_pixiv.client._net import AsyncClient, Retry
 from async_pixiv.client.api import API_SECTION_REGISTRY
 from async_pixiv.model.user import Account
-from async_pixiv.utils.context import PixivClientContext, TimezoneContext
+from async_pixiv.utils.context import TimezoneContext
 
 # noinspection PyProtectedMember
 if TYPE_CHECKING:
@@ -175,7 +175,6 @@ class PixivClient(PixivClientNet):
             json_loads=json_loads,
             retry=Retry(times=retry_times, sleep=retry_sleep),
         )
-        self._client_token = PixivClientContext.set(self)
         self._timezone_token = TimezoneContext.set(timezone)
 
     async def login_with_token(self, token=None) -> Account:
@@ -200,7 +199,6 @@ class PixivClient(PixivClientNet):
         return self.account
 
     async def close(self) -> None:
-        PixivClientContext.reset(self._client_token)
         TimezoneContext.reset(self._timezone_token)
         await super().close()
 

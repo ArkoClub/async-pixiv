@@ -8,7 +8,6 @@ from typing import (
     Callable,
     Literal,
     NoReturn,
-    Optional,
     Protocol,
     Self,
     TypeVar,
@@ -19,7 +18,8 @@ import tzlocal
 from pydantic import AfterValidator, PlainValidator
 from yarl import URL as _URL
 
-from async_pixiv.utils.context import get_pixiv_client, get_timezone
+from async_pixiv.error import ClientNotFindError
+from async_pixiv.utils.context import get_timezone
 from async_pixiv.utils.magic import curses
 
 __all__ = (
@@ -128,10 +128,10 @@ async def download(
     output: Union[StrPath, "BytesIO", None] = None,
     chunk_size: int | None = None,
     progress_handler: ProgressHandler | None = None,
-    client: Optional["PixivClient"] = None,
+    client: "PixivClient" | None = None,
 ) -> bytes:
     if client is None:
-        client = get_pixiv_client(raise_error=True)
+        raise ClientNotFindError()
     return await client.download(
         self,
         method,
@@ -167,7 +167,7 @@ class URL_Protocol(Protocol):  # NOSONAR
         output: Union[StrPath, "BytesIO"] | None = None,
         chunk_size: int | None = None,
         progress_handler: ProgressHandler | None = None,
-        client: Optional["PixivClient"] = None,
+        client: "PixivClient" | None = None,
     ) -> Union["Path", bytes, "BytesIO"]: ...
 
     def __str__(self) -> bytes: ...
