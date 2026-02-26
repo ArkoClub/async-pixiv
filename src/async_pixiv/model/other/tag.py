@@ -1,4 +1,5 @@
 from pydantic import Field
+
 from async_pixiv.model._base import PixivModel
 
 __all__ = ("Tag", "TagTranslation")

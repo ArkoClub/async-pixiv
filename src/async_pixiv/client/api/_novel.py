@@ -18,7 +18,7 @@ try:
 except ImportError:
     import json as jsonlib
 
-__all__ = ("NovelAPI", "NovelPageResult", "NovelDetail")
+__all__ = ("NovelAPI", "NovelDetail", "NovelPageResult")
 
 
 class NovelDetail(PixivModel):

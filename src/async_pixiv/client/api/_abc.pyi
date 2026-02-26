@@ -1,6 +1,6 @@
 from abc import ABC
 from threading import RLock as Lock
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import TYPE_CHECKING, Sequence
 
 from async_pixiv.model import SearchAIType
 from async_pixiv.model.other.result import PageResult
@@ -14,7 +14,7 @@ __all__ = ("APIBase",)
 class APIBase[T](ABC):
     _lock: Lock
 
-    _pixiv_client: "PixivClient"
+    _pixiv_client: PixivClient
     _type: str
 
     @property
@@ -26,7 +26,7 @@ class APIBase[T](ABC):
 
     def __init__(
         self,
-        client: Optional["PixivClient"] = None,
+        client: PixivClient | None = None,
     ) -> None:
         pass
 

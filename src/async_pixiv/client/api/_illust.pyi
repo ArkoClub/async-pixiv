@@ -7,7 +7,7 @@ from async_pixiv.model.other.enums import SearchAIType, SearchShort, SearchTarge
 from async_pixiv.model.other.result import PageResult, UgoiraMetadataResult
 from async_pixiv.typedefs import DurationTypes, ShortTypes
 
-__all__ = ("IllustAPI", "IllustPageResult", "IllustDetail")
+__all__ = ("IllustAPI", "IllustDetail", "IllustPageResult")
 
 class IllustDetail(PixivModel):
     illust: Illust

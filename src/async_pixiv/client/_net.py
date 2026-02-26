@@ -3,13 +3,15 @@ from logging import getLogger
 
 from httpx import (
     AsyncBaseTransport,
-    AsyncClient as DefaultAsyncClient,
     QueryParams,
     Request,
 )
+from httpx import (
+    AsyncClient as DefaultAsyncClient,
+)
 
 # noinspection PyProtectedMember
-from httpx._client import ClientState, USE_CLIENT_DEFAULT, UseClientDefault
+from httpx._client import USE_CLIENT_DEFAULT, ClientState, UseClientDefault
 
 # noinspection PyProtectedMember
 from httpx._types import (
@@ -167,9 +169,7 @@ class AsyncClient(DefaultAsyncClient):
         key = str(url)
         if key not in cache:
             cache[key] = str(
-                super(AsyncClient, self)._merge_url(
-                    url if isinstance(url, str) else str(url)
-                )
+                super()._merge_url(url if isinstance(url, str) else str(url))
             )
             if len(cache) > 64:
                 cache.pop(next(iter(cache)))
@@ -200,7 +200,7 @@ class AsyncClient(DefaultAsyncClient):
         headers = dict(filter(lambda x: x[1], (headers or {}).items()))
         # noinspection PyProtectedMember
         params = self._merge_queryparams(params).merge(yarl_url._parsed_query)
-        return super(AsyncClient, self).build_request(
+        return super().build_request(
             method, httpx_url, headers=headers, params=params, **kwargs
         )
 

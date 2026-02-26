@@ -2,11 +2,11 @@ from async_pixiv.typedefs import Enum
 
 __all__ = (
     "Quality",
-    "SearchTarget",
-    "SearchShort",
+    "SearchAIType",
     "SearchDuration",
     "SearchFilter",
-    "SearchAIType",
+    "SearchShort",
+    "SearchTarget",
 )
 
 

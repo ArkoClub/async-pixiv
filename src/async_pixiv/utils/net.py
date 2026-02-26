@@ -4,10 +4,10 @@ from logging import getLogger
 from typing import Any, AsyncIterator, Mapping, Optional, TypeVar, Union
 
 from aiolimiter import AsyncLimiter
-from httpx import Proxy, Request, URL
+from httpx import URL, Proxy, Request
 
 # noinspection PyProtectedMember
-from httpx._client import ClientState, USE_CLIENT_DEFAULT, UseClientDefault
+from httpx._client import USE_CLIENT_DEFAULT, ClientState, UseClientDefault
 
 # noinspection PyProtectedMember
 from httpx._types import (
@@ -15,7 +15,6 @@ from httpx._types import (
     CookieTypes,
     HeaderTypes,
     ProxiesTypes,
-    QueryParamTypes as _QueryParamTypes,
     RequestContent,
     RequestData,
     RequestExtensions,
@@ -23,24 +22,27 @@ from httpx._types import (
     TimeoutTypes,
     URLTypes,
 )
+from httpx._types import (
+    QueryParamTypes as _QueryParamTypes,
+)
 
 from async_pixiv.error import RateLimitError
 from async_pixiv.utils.bypass import BypassAsyncHTTPTransport
 from async_pixiv.utils.enums import Enum as PixivEnum
-from async_pixiv.utils.overwrite import AsyncHTTPTransport, Response, AsyncClient
+from async_pixiv.utils.overwrite import AsyncClient, AsyncHTTPTransport, Response
 
 __all__ = ("Net",)
 
 QueryParamTypes = TypeVar(
     "QueryParamTypes",
-    bound=Union[_QueryParamTypes, Mapping[str, Union[Enum, PixivEnum]]],
+    bound=_QueryParamTypes | Mapping[str, Enum | PixivEnum],
 )
 
 logger = getLogger(__name__)
 
 
 def get_proxy_map(
-    proxies: Optional[ProxiesTypes], allow_env_proxies: bool
+    proxies: ProxiesTypes | None, allow_env_proxies: bool
 ) -> dict[str, Proxy | None]:
     if proxies is None:
         if allow_env_proxies:
@@ -71,7 +73,7 @@ class NullLimiter(AsyncLimiter):
         return
 
 
-class Net(object):
+class Net:
     _headers: HeaderTypes = {}
     _client: AsyncClient | None = None
     _limiter: AsyncLimiter | None = None
@@ -187,7 +189,7 @@ class Net(object):
         content: Optional["RequestContent"] = None,
         data: Optional["RequestData"] = None,
         files: Optional["RequestFiles"] = None,
-        json: Optional[Any] = None,
+        json: Any | None = None,
         params: Optional["QueryParamTypes"] = None,
         headers: Optional["HeaderTypes"] = None,
         cookies: Optional["CookieTypes"] = None,
@@ -227,7 +229,7 @@ class Net(object):
         content: Optional["RequestContent"] = None,
         data: Optional["RequestData"] = None,
         files: Optional["RequestFiles"] = None,
-        json: Optional[Any] = None,
+        json: Any | None = None,
         params: Optional["QueryParamTypes"] = None,
         headers: Optional["HeaderTypes"] = None,
         cookies: Optional["CookieTypes"] = None,
@@ -339,7 +341,7 @@ class Net(object):
         content: Optional["RequestContent"] = None,
         data: Optional["RequestData"] = None,
         files: Optional["RequestFiles"] = None,
-        json: Optional[Any] = None,
+        json: Any | None = None,
         params: Optional["QueryParamTypes"] = None,
         headers: Optional["HeaderTypes"] = None,
         cookies: Optional["CookieTypes"] = None,
@@ -371,7 +373,7 @@ class Net(object):
         content: Optional["RequestContent"] = None,
         data: Optional["RequestData"] = None,
         files: Optional["RequestFiles"] = None,
-        json: Optional[Any] = None,
+        json: Any | None = None,
         params: Optional["QueryParamTypes"] = None,
         headers: Optional["HeaderTypes"] = None,
         cookies: Optional["CookieTypes"] = None,
@@ -400,17 +402,17 @@ class Net(object):
         self,
         url: URLTypes,
         *,
-        content: Optional[RequestContent] = None,
-        data: Optional[RequestData] = None,
-        files: Optional[RequestFiles] = None,
-        json: Optional[Any] = None,
-        params: Optional[QueryParamTypes] = None,
-        headers: Optional[HeaderTypes] = None,
-        cookies: Optional[CookieTypes] = None,
-        auth: Union[AuthTypes, UseClientDefault] = USE_CLIENT_DEFAULT,
-        follow_redirects: Union[bool, UseClientDefault] = USE_CLIENT_DEFAULT,
-        timeout: Union[TimeoutTypes, UseClientDefault] = USE_CLIENT_DEFAULT,
-        extensions: Optional[RequestExtensions] = None,
+        content: RequestContent | None = None,
+        data: RequestData | None = None,
+        files: RequestFiles | None = None,
+        json: Any | None = None,
+        params: QueryParamTypes | None = None,
+        headers: HeaderTypes | None = None,
+        cookies: CookieTypes | None = None,
+        auth: AuthTypes | UseClientDefault = USE_CLIENT_DEFAULT,
+        follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
+        timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
+        extensions: RequestExtensions | None = None,
     ) -> Response:
         return await self.request(
             "PATCH",

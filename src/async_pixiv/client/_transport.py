@@ -2,15 +2,19 @@ import ssl
 from logging import getLogger
 from threading import Lock
 from types import TracebackType
-from typing import AsyncIterable, Iterable, Optional
+from typing import AsyncIterable, Iterable
 
 import httpcore
 from httpx import (
     AsyncByteStream,
     AsyncClient,
-    AsyncHTTPTransport as DefaultAsyncHTTPTransport,
-    HTTPTransport as DefaultHTTPTransport,
     SyncByteStream,
+)
+from httpx import (
+    AsyncHTTPTransport as DefaultAsyncHTTPTransport,
+)
+from httpx import (
+    HTTPTransport as DefaultHTTPTransport,
 )
 
 # noinspection PyProtectedMember
@@ -32,7 +36,7 @@ try:
 except ImportError:
     import re
 
-__all__ = ("PixivAsyncHTTPTransport", "BypassPixivAsyncHTTPTransport", "HTTPTransport")
+__all__ = ("BypassPixivAsyncHTTPTransport", "HTTPTransport", "PixivAsyncHTTPTransport")
 
 
 logger = getLogger(__name__)
@@ -106,7 +110,7 @@ class DNSResolver:
             "accept": "application/dns-json",
         }
 
-    async def get(self, name: str) -> Optional[str]:
+    async def get(self, name: str) -> str | None:
         if name in [
             "app-api.pixiv.net",
             "public-api.secure.pixiv.net",
@@ -117,7 +121,7 @@ class DNSResolver:
             return await self.require_app_api_hosts("www.pixivision.net")
         return None
 
-    async def require_app_api_hosts(self, hostname: str) -> Optional[str]:
+    async def require_app_api_hosts(self, hostname: str) -> str | None:
         from httpx import ConnectTimeout, HTTPError
 
         params = {

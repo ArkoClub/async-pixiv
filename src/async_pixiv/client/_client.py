@@ -119,7 +119,7 @@ class PixivClientNet:
         async with self._client.stream(
             method, url, headers=self._update_header()
         ) as response:
-            response: "Response"
+            response: Response
             response.raise_for_status().raise_for_status()
 
             total = int(response.headers.get("content-length", 0))
@@ -228,7 +228,7 @@ class PixivClient(PixivClientNet):
             api_type_name = f"{section_type}API"
             module_name = f"async_pixiv.client.api._{section_type.lower()}"
             module = import_module(module_name)
-            api_type: type["APIBase"] = getattr(module, api_type_name)
+            api_type: type[APIBase] = getattr(module, api_type_name)
             self._sections[section_type] = api_type(self)
         return self._sections[section_type]
 

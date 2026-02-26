@@ -3,12 +3,20 @@ from typing import Any, AsyncIterable, Iterable, Self
 import httpcore
 from httpx import (
     AsyncByteStream,
-    AsyncClient as DefaultAsyncClient,
-    AsyncHTTPTransport as DefaultAsyncHTTPTransport,
-    HTTPTransport as DefaultHTTPTransport,
     Request,
-    Response as DefaultResponse,
     SyncByteStream,
+)
+from httpx import (
+    AsyncClient as DefaultAsyncClient,
+)
+from httpx import (
+    AsyncHTTPTransport as DefaultAsyncHTTPTransport,
+)
+from httpx import (
+    HTTPTransport as DefaultHTTPTransport,
+)
+from httpx import (
+    Response as DefaultResponse,
 )
 
 # noinspection PyProtectedMember
@@ -31,7 +39,7 @@ try:
 except ImportError:
     from json import loads as json_loads
 
-__all__ = ("AsyncHTTPTransport", "HTTPTransport", "Response", "AsyncClient")
+__all__ = ("AsyncClient", "AsyncHTTPTransport", "HTTPTransport", "Response")
 
 STATUS_ERROR_MAP = {
     404: NotExistError,

@@ -23,11 +23,11 @@ from async_pixiv.typedefs import Datetime, Enum, ProgressHandler, StrPath, UrlTy
 from async_pixiv.warn import IllustWarning
 
 __all__ = (
-    "Illust",
     "UGOIRA_RESULT_TYPE",
-    "IllustType",
+    "Illust",
     "IllustMetaPage",
     "IllustMetaSinglePage",
+    "IllustType",
 )
 
 

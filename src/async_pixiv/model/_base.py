@@ -1,4 +1,4 @@
-from typing import Any, Optional, Self, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional, Self
 
 from pydantic import (
     BaseModel,
@@ -13,7 +13,7 @@ from async_pixiv.utils.context import get_pixiv_client, set_pixiv_client
 if TYPE_CHECKING:
     from async_pixiv import PixivClient
 
-__all__ = ("PixivModel", "NullDictValidator")
+__all__ = ("NullDictValidator", "PixivModel")
 
 
 # noinspection Pydantic
@@ -43,7 +43,7 @@ class PixivModel(BaseModel):
     def __hash__(self) -> int:
         if hasattr(self, "id"):
             return hash((self.__class__.__name__, self.id))
-        return super(PixivModel, self).__hash__()
+        return super().__hash__()
 
     @field_validator("*", mode="before")
     @classmethod

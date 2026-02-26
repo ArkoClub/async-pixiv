@@ -7,7 +7,7 @@ from async_pixiv.model.novel import Novel
 from async_pixiv.model.other.result import PageResult
 from async_pixiv.model.user import FullUser, User
 
-__all__ = ("UserAPI", "UserPageResult", "UserPreview", "UserDetail")
+__all__ = ("UserAPI", "UserDetail", "UserPageResult", "UserPreview")
 
 UserDetail = FullUser
 

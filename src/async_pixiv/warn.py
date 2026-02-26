@@ -1,4 +1,4 @@
-__all__ = ("PixivWarning", "IllustWarning")
+__all__ = ("IllustWarning", "PixivWarning")
 
 
 class PixivWarning(Warning):

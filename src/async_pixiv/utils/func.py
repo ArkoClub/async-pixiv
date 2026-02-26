@@ -1,18 +1,17 @@
 from typing import (
     Callable,
-    List,
     TypeVar,
 )
 
 from yarl import URL
 
-__all__ = ("proxies_from_env", "oauth_pkce")
+__all__ = ("oauth_pkce", "proxies_from_env")
 
 T_Wrapped = TypeVar("T_Wrapped", bound=Callable)
 
 
 # noinspection PyProtectedMember
-def proxies_from_env() -> List[URL]:
+def proxies_from_env() -> list[URL]:
     from urllib.request import getproxies
 
     return [
@@ -23,9 +22,9 @@ def proxies_from_env() -> List[URL]:
 
 
 def oauth_pkce() -> tuple[str, str]:
-    from secrets import token_urlsafe
-    from hashlib import sha256
     from base64 import urlsafe_b64encode
+    from hashlib import sha256
+    from secrets import token_urlsafe
 
     verifier = token_urlsafe(32)
     challenge = (

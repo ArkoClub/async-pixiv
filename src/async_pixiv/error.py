@@ -1,20 +1,20 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from async_pixiv.utils.overwrite import Response
 
 __all__ = (
-    "PixivError",
-    "ClientNotFindError",
-    "LoginError",
-    "OauthError",
-    "InvalidRefreshToken",
-    "ArtWorkTypeError",
-    "StatusError",
     "APIError",
-    "RateLimitError",
-    "NotExistError",
+    "ArtWorkTypeError",
+    "ClientNotFindError",
     "DataValidationError",
+    "InvalidRefreshToken",
+    "LoginError",
+    "NotExistError",
+    "OauthError",
+    "PixivError",
+    "RateLimitError",
+    "StatusError",
 )
 
 
@@ -60,7 +60,7 @@ class ArtWorkTypeError(PixivError, TypeError):
 
 
 class StatusError(PixivError):
-    reason: Optional[str] = None
+    reason: str | None = None
 
     def __init__(self, response: "Response") -> None:
         self.response = response

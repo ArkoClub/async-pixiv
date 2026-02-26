@@ -3,7 +3,7 @@
 import logging
 import ssl
 from threading import Lock
-from typing import Optional, TYPE_CHECKING, Tuple, Type
+from typing import TYPE_CHECKING
 
 from httpx import (
     AsyncClient,
@@ -22,7 +22,7 @@ except ImportError:
 if TYPE_CHECKING:
     from types import TracebackType
 
-__all__ = ("DNSResolver", "BypassAsyncHTTPTransport")
+__all__ = ("BypassAsyncHTTPTransport", "DNSResolver")
 
 _DEFAULT_TIMEOUT = 5
 _DEFAULT_DNS_QUERY_URLS = (
@@ -39,7 +39,7 @@ class DNSResolver:
     """DNS resolver for BypassPixivAsyncHTTPTransport."""
 
     _lock: Lock = Lock()
-    _client: Optional[AsyncClient] = None
+    _client: AsyncClient | None = None
 
     @property
     def client(self) -> AsyncClient:
@@ -50,7 +50,7 @@ class DNSResolver:
 
     def __init__(
         self,
-        dns_query_urls: Tuple[str] = _DEFAULT_DNS_QUERY_URLS,
+        dns_query_urls: tuple[str] = _DEFAULT_DNS_QUERY_URLS,
         timeout: int = _DEFAULT_TIMEOUT,
     ) -> None:
         self.dns_query_urls = dns_query_urls
@@ -63,7 +63,7 @@ class DNSResolver:
             "accept": "application/dns-json",
         }
 
-    async def get(self, name: str) -> Optional[str]:
+    async def get(self, name: str) -> str | None:
         if name in [
             "app-api.pixiv.net",
             "public-api.secure.pixiv.net",
@@ -74,7 +74,7 @@ class DNSResolver:
             return await self.require_app_api_hosts("www.pixivision.net")
         return None
 
-    async def require_app_api_hosts(self, hostname: str) -> Optional[str]:
+    async def require_app_api_hosts(self, hostname: str) -> str | None:
         params = {
             "ct": "application/dns-json",
             "name": hostname,
@@ -131,7 +131,7 @@ class BypassAsyncHTTPTransport(AsyncHTTPTransport):
     https://github.com/encode/httpx/discussions/2698
     """
 
-    def __init__(self, *args, solver: Optional[DNSResolver] = None, **kwargs) -> None:
+    def __init__(self, *args, solver: DNSResolver | None = None, **kwargs) -> None:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
@@ -145,9 +145,9 @@ class BypassAsyncHTTPTransport(AsyncHTTPTransport):
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]] = None,
-        exc_value: Optional[BaseException] = None,
-        traceback: "Optional[TracebackType]" = None,
+        exc_type: type[BaseException] | None = None,
+        exc_value: BaseException | None = None,
+        traceback: "TracebackType | None" = None,
     ) -> None:
         await self.solver.aclose()
         await super().__aexit__(exc_type, exc_value, traceback)

@@ -181,7 +181,7 @@ def patchable_builtin(klass):
 
 @wraps(__builtin__.dir)
 def __filtered_dir__(obj=None):
-    name = hasattr(obj, "__name__") and obj.__name__ or obj.__class__.__name__
+    name = (hasattr(obj, "__name__") and obj.__name__) or obj.__class__.__name__
     if obj is None:
         # Return names from the local scope of the calling frame,
         # taking into account indirection added by __filtered_dir__
@@ -263,7 +263,7 @@ override_dict = {}
 for override in [as_number, as_sequence, as_async]:
     tp_as_name = override[0]
     for dunder, impl_method in override[1]:
-        override_dict["__{}__".format(dunder)] = (tp_as_name, impl_method)
+        override_dict[f"__{dunder}__"] = (tp_as_name, impl_method)
 
 # divmod isn't a dunder, still make it overridable
 override_dict["divmod()"] = ("tp_as_number", "nb_divmod")

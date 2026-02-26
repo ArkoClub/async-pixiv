@@ -9,7 +9,7 @@ from async_pixiv.model.other.result import PageResult
 from async_pixiv.model.user import FullUser, User
 from async_pixiv.typedefs import DurationTypes, ShortTypes
 
-__all__ = ("UserAPI", "UserPageResult", "UserPreview", "UserDetail")
+__all__ = ("UserAPI", "UserDetail", "UserPageResult", "UserPreview")
 
 UserDetail = FullUser
 

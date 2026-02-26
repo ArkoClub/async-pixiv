@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from importlib import import_module
 from threading import RLock as Lock
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import TYPE_CHECKING, Sequence
 
 from pydantic_core._pydantic_core import ValidationError
 
@@ -27,7 +27,7 @@ _TYPE_CATCH_DICT: dict[str, type[PageResult | PixivModel]] = {}
 class APIBase[T](ABC):
     _lock: Lock = Lock()
 
-    _pixiv_client: "PixivClient"
+    _pixiv_client: PixivClient
     _type: str
 
     @property
@@ -39,7 +39,7 @@ class APIBase[T](ABC):
 
     def __init__(
         self,
-        client: Optional["PixivClient"] = None,
+        client: PixivClient | None = None,
     ) -> None:
         client = client or get_pixiv_client()
         if client is None:

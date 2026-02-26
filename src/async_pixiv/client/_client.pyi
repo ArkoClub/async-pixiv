@@ -18,6 +18,7 @@ from httpx._types import (
     TimeoutTypes,
     URLTypes,
 )
+
 # noinspection PyProtectedMember
 from pytz.tzinfo import DstTzInfo
 from yarl import URL
@@ -52,7 +53,7 @@ class PixivClientNet:
     access_token: str | None = None
     refresh_token: str | None = None
 
-    def _update_header(self, headers: HeaderTypes | None = None) -> "HeaderTypes":
+    def _update_header(self, headers: HeaderTypes | None = None) -> HeaderTypes:
         pass
     @property
     def is_closed(self) -> bool:

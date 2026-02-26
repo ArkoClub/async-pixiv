@@ -23,18 +23,18 @@ from async_pixiv.utils.context import get_timezone
 from async_pixiv.utils.magic import curses
 
 __all__ = (
-    "ShortTypes",
-    "TargetTypes",
-    "FilterTypes",
-    "DurationTypes",
-    "IllustTypes",
-    "StrPath",
     "UGOIRA_RESULT_TYPE",
-    "UrlType",
+    "Datetime",
+    "DurationTypes",
     "Enum",
     "EnumType",
-    "Datetime",
+    "FilterTypes",
+    "IllustTypes",
     "ProgressHandler",
+    "ShortTypes",
+    "StrPath",
+    "TargetTypes",
+    "UrlType",
 )
 
 if TYPE_CHECKING:
@@ -96,7 +96,7 @@ else:
 
     IllustTypes = Union[Literal["illust", "manga", "novel", "ugoira"], "IllustType"]
 
-ProgressHandler = Callable[[int, int], Union[NoReturn, Awaitable[NoReturn]]]
+ProgressHandler = Callable[[int, int], Awaitable[NoReturn]]
 """async/sync progress_handler(uploaded_bytes, total_bytes) -> Noreturn"""
 
 UGOIRA_RESULT_TYPE = Literal["zip", "jpg", "iter", "gif", "mp4"]
@@ -110,7 +110,7 @@ class Enum(BaseEnum):
         return self.value
 
 
-EnumType = TypeVar("EnumType", bound=Union[Enum, BaseEnum])
+EnumType = TypeVar("EnumType", bound=Enum | BaseEnum)
 
 
 def _datetime_validator(value: datetime.datetime) -> datetime.datetime:

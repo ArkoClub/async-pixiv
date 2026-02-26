@@ -11,16 +11,16 @@ from async_pixiv.typedefs import Datetime, UrlType
 
 __all__ = (
     "Novel",
-    "NovelSeries",
-    "NovelRating",
-    "NovelText",
-    "NovelSeriesNavigationNovel",
-    "NovelSeriesNavigation",
     "NovelGlossaryItem",
-    "NovelImageUrl",
-    "NovelImage",
-    "NovelIllustUser",
     "NovelIllust",
+    "NovelIllustUser",
+    "NovelImage",
+    "NovelImageUrl",
+    "NovelRating",
+    "NovelSeries",
+    "NovelSeriesNavigation",
+    "NovelSeriesNavigationNovel",
+    "NovelText",
 )
 
 
