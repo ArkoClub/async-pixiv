@@ -133,7 +133,7 @@ async def download(
     if client is None:
         from async_pixiv.utils.context import get_pixiv_client
 
-        client = get_pixiv_client()
+        client = get_pixiv_client(raise_error=True)
     return await client.download(
         self,
         method,

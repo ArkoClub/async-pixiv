@@ -106,9 +106,10 @@ class Illust(PixivModel):
             return [i.image_urls for i in self.meta_pages]
 
     async def get_ugoira_metadata(self) -> UgoiraMetadata:
+        client = self._require_client()
         if not hasattr(self, "_ugoira_metadata_cache"):
             self._ugoira_metadata_cache = (
-                await self._pixiv_client.ILLUST.ugoira_metadata(self.id)
+                await client.ILLUST.ugoira_metadata(self.id)
             ).metadata
         return self._ugoira_metadata_cache
 
@@ -157,6 +158,7 @@ class Illust(PixivModel):
             output=output,
             chunk_size=chunk_size,
             progress_handler=progress_handler,
+            client=self._require_client(),
         )
 
     async def download_all(
@@ -181,6 +183,7 @@ class Illust(PixivModel):
             raise ValueError(
                 f'quality "{quality}" not supported, use "Quality.AdaptiveBest" or "Quality.AdaptiveWorst"'
             )
+        client = self._require_client()
         result = []
         for image_urls in self.image_url_list:
             large = image_urls.large if hasattr(image_urls, "large") else None
@@ -195,7 +198,7 @@ class Illust(PixivModel):
             if output is not None:
                 image_name = Path(str(link)).name
                 image_path = output / image_name
-                await self._pixiv_client.download(
+                await client.download(
                     link,
                     output=image_path,
                     chunk_size=chunk_size,
@@ -204,7 +207,7 @@ class Illust(PixivModel):
                 result.append(image_path)
             else:
                 result.append(
-                    await self._pixiv_client.download(
+                    await client.download(
                         link,
                         chunk_size=chunk_size,
                         progress_handler=progress_handler,
@@ -277,10 +280,9 @@ class Illust(PixivModel):
 
         metadata = await self.get_ugoira_metadata()
         link = self._resolve_ugoira_link(metadata, quality)
+        client = self._require_client()
 
-        data = await self._pixiv_client.download(
-            link, progress_handler=progress_handler
-        )
+        data = await client.download(link, progress_handler=progress_handler)
         if data is None:
             return None
         if result_type == "zip":

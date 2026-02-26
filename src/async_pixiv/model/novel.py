@@ -73,7 +73,7 @@ class Novel(PixivModel):
         return UrlType(f"https://www.pixiv.net/novel/show.php?id={self.id}")
 
     async def get_text(self) -> "NovelText":
-        return await self._pixiv_client.NOVEL.text(self.id)
+        return await self._require_client().NOVEL.text(self.id)
 
 
 class NovelRating(PixivModel):

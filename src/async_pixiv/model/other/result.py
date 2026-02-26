@@ -18,7 +18,7 @@ class PageResult[T](ABC, PixivModel):
 
     async def next(self) -> Self | None:
         if self.next_url is not None:
-            with set_pixiv_client(self._pixiv_client) as client:
+            with set_pixiv_client(self._require_client()) as client:
                 response = await client.request_get(self.next_url)
                 return self.__class__.model_validate(response.raise_error().json())
         return None

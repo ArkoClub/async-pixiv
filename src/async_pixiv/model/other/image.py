@@ -15,6 +15,7 @@ class PixivImage(ABC, PixivModel):
         pass
 
     async def download(self, *args, **kwargs):
+        kwargs.setdefault("client", self._pixiv_client)
         return await self.link.download(*args, **kwargs)
 
 

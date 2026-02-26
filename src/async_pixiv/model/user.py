@@ -45,11 +45,7 @@ class User(PixivModel):
         return URL(f"https://www.pixiv.net/users/{self.id}")
 
     async def detail(self) -> "FullUser":
-        if self._pixiv_client is None:
-            from async_pixiv.error import ClientNotFindError
-
-            raise ClientNotFindError()
-        return await self._pixiv_client.USER.detail(self.id)
+        return await self._require_client().USER.detail(self.id)
 
 
 class Account(User):
