@@ -75,7 +75,7 @@ class NullLimiter(AsyncLimiter):
 
 
 class Net:
-    _headers: HeaderTypes = {}
+    _headers: HeaderTypes
     _client: AsyncClient | None = None
     _limiter: AsyncLimiter | None = None
 
@@ -91,6 +91,7 @@ class Net:
         retry: int = 5,
         retry_sleep: float = 1.0,
     ) -> None:
+        self._headers = {}
         if max_rate is not None and max_rate > 0:
             self._limiter = AsyncLimiter(max_rate, time_period)
         else:

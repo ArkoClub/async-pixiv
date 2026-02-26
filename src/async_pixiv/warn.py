@@ -10,8 +10,13 @@ class PixivWarning(Warning):
     def __init_subclass__(cls, **kwargs) -> None:
         cls.__module__ = "async_pixiv.warn"
 
-    def __eq__(self, other: Exception) -> bool:
-        return self == other
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PixivWarning):
+            return NotImplemented
+        return self.message == other.message
+
+    def __hash__(self) -> int:
+        return hash((self.__class__.__name__, self.message))
 
 
 class IllustWarning(PixivWarning):

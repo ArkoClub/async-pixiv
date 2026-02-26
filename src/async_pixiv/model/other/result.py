@@ -9,7 +9,7 @@ from async_pixiv.typedefs import UrlType
 
 
 class PageResult[T](ABC, PixivModel):
-    previews: list[T] = []
+    previews: list[T] = Field(default_factory=list)
     next_url: UrlType | None = None
 
     def __iter__(self) -> Iterator[T]:

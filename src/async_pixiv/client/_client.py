@@ -76,6 +76,47 @@ class PixivClientNet:
     async def request_delete(self, *args, headers=None, **kwargs):
         return await self.request("DELETE", *args, headers=headers, **kwargs)
 
+    @staticmethod
+    def _prepare_output_path(output, url) -> Path:
+        output_path = Path(output).resolve()
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        if not output_path.suffix:
+            output_path = output_path.with_suffix(Path(str(url)).suffix)
+        return output_path
+
+    @staticmethod
+    async def _download_to_bytes(response, chunk_size, add_progress):
+        data = bytearray()
+        uploaded = 0
+        async for chunk in response.aiter_bytes(chunk_size):
+            data.extend(chunk)
+            uploaded += len(chunk)
+            add_progress(uploaded)
+        return bytes(data)
+
+    @staticmethod
+    async def _download_to_path(
+        response, output_path, chunk_size, add_progress
+    ) -> None:
+        from aiofiles import open as async_open
+
+        async with async_open(output_path, mode="wb") as file:
+            uploaded = 0
+            async for chunk in response.aiter_bytes(chunk_size):
+                await file.write(chunk)
+                uploaded += len(chunk)
+                add_progress(uploaded)
+
+    @staticmethod
+    async def _download_to_buffer(response, output, chunk_size, add_progress):
+        uploaded = 0
+        async for chunk in response.aiter_bytes(chunk_size):
+            # noinspection PyTypeChecker
+            output.write(chunk)
+            uploaded += len(chunk)
+            add_progress(uploaded)
+        return output
+
     async def download(
         self, url, method="GET", *, output=None, chunk_size=None, progress_handler=None
     ):
@@ -104,33 +145,29 @@ class PixivClientNet:
             response.raise_for_status().raise_for_status()
 
             total = int(response.headers.get("content-length", 0))
-            if output is None:
-                data = b""
-                async for chunk in response.aiter_bytes(chunk_size):
-                    data += chunk
-                    add_handle_progress_task(len(data), total)
-                return data
-            elif not isinstance(output, BytesIO):  # str or Path
-                from aiofiles import open as async_open
 
-                output = Path(output).resolve()
-                output.parent.mkdir(parents=True, exist_ok=True)
-                if not output.suffix:
-                    output = output.with_suffix(Path(str(url)).suffix)
-                async with async_open(output, mode="wb") as file:
-                    uploaded = 0
-                    async for chunk in response.aiter_bytes(chunk_size):
-                        await file.write(chunk)
-                        uploaded += len(chunk)
-                        add_handle_progress_task(uploaded, total)
-            else:  # BytesIO
-                uploaded = 0
-                async for chunk in response.aiter_bytes(chunk_size):
-                    # noinspection PyTypeChecker
-                    output.write(chunk)
-                    uploaded += len(chunk)
-                    add_handle_progress_task(uploaded, total)
-        return output
+            def add_progress(uploaded):
+                add_handle_progress_task(uploaded, total)
+
+            if output is None:
+                return await self._download_to_bytes(response, chunk_size, add_progress)
+
+            if isinstance(output, BytesIO):
+                return await self._download_to_buffer(
+                    response,
+                    output,
+                    chunk_size,
+                    add_progress,
+                )
+
+            output_path = self._prepare_output_path(output, url)
+            await self._download_to_path(
+                response,
+                output_path,
+                chunk_size,
+                add_progress,
+            )
+            return output_path
 
 
 # noinspection PyPropertyDefinition

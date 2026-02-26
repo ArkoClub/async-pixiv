@@ -73,7 +73,7 @@ class Illust(PixivModel):
     caption: str | None = None
     restrict: int
     user: User
-    tags: list[Tag] = []
+    tags: list[Tag] = Field(default_factory=list)
     tools: list[str]
     create_date: Datetime
     page_count: int
@@ -105,6 +105,20 @@ class Illust(PixivModel):
         else:
             return [i.image_urls for i in self.meta_pages]
 
+    @staticmethod
+    def _resolve_output_dir(output: StrPath) -> Path:
+        output_path = Path(output).resolve()
+        output_path.mkdir(parents=True, exist_ok=True)
+        return output_path
+
+    @staticmethod
+    def _resolve_directory(path: StrPath) -> Path:
+        return Path(path).resolve()
+
+    @staticmethod
+    def _resolved_path_str(path: Path) -> str:
+        return str(path.resolve())
+
     async def get_ugoira_metadata(self) -> UgoiraMetadata:
         client = self._require_client()
         if not hasattr(self, "_ugoira_metadata_cache"):
@@ -129,7 +143,8 @@ class Illust(PixivModel):
 
         if quality not in [Quality.AdaptiveBest, Quality.AdaptiveWorst]:
             raise ValueError(
-                f'quality "{quality}" not supported, use "Quality.AdaptiveBest" or "Quality.AdaptiveWorst"'
+                f'quality "{quality}" not supported, use '
+                '"Quality.AdaptiveBest" or "Quality.AdaptiveWorst"'
             )
         if self.meta_single_page is None:
             warnings.warn(
@@ -137,6 +152,7 @@ class Illust(PixivModel):
                 "By default, only the first image will be downloaded. "
                 'Please use the "download_all" method to download other images.',
                 IllustWarning,
+                stacklevel=2,
             )
         image_urls = self.image_url_list[0]
         if quality == Quality.AdaptiveBest:
@@ -176,12 +192,12 @@ class Illust(PixivModel):
             )
 
         if output is not None:
-            output = Path(output).resolve()
-            output.mkdir(parents=True, exist_ok=True)
+            output = self._resolve_output_dir(output)
 
         if quality not in [Quality.AdaptiveBest, Quality.AdaptiveWorst]:
             raise ValueError(
-                f'quality "{quality}" not supported, use "Quality.AdaptiveBest" or "Quality.AdaptiveWorst"'
+                f'quality "{quality}" not supported, use '
+                '"Quality.AdaptiveBest" or "Quality.AdaptiveWorst"'
             )
         client = self._require_client()
         result = []
@@ -328,7 +344,7 @@ class Illust(PixivModel):
         result_type: UGOIRA_RESULT_TYPE,
     ) -> bytes:
         async with TemporaryDirectory() as directory:
-            directory = Path(directory).resolve()
+            directory = Illust._resolve_directory(directory)
             config_path = directory / "list.txt"
             async with async_open(config_path, mode="w") as list_file:
                 for frame in metadata.frames:
@@ -337,13 +353,15 @@ class Illust(PixivModel):
                         async with async_open(frame_path, mode="wb") as frame_file:
                             await frame_file.write(frame_zip_file.read())
                     await list_file.write(
-                        f"file {frame_path.resolve()}\n".replace("\\", "/")
+                        f"file {Illust._resolved_path_str(frame_path)}\n".replace(
+                            "\\", "/"
+                        )
                     )
                     await list_file.write(f"duration {frame.delay / 1000}\n")
             del zip_file
 
             event = Event()
-            input_path = str(config_path.resolve())
+            input_path = Illust._resolved_path_str(config_path)
             if result_type == "mp4":
                 output_path = directory / "out.mp4"
                 # noinspection SpellCheckingInspection

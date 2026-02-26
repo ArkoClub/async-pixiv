@@ -171,7 +171,8 @@ class BypassPixivAsyncHTTPTransport(PixivAsyncHTTPTransport):
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
         self.solver = solver or DNSResolver()
-        # 注意请勿通过 AsyncClient 传入 verify 参数，因为 httpx 优先使用了 transport 的 verify 参数
+        # 注意请勿通过 AsyncClient 传入 verify 参数。
+        # 因为 httpx 优先使用了 transport 的 verify 参数。
         super().__init__(*args, verify=context, **kwargs)
 
     async def handle_async_request(self, request) -> Response:
