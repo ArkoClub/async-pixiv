@@ -36,7 +36,12 @@ try:
 except ImportError:
     import re
 
-__all__ = ("BypassPixivAsyncHTTPTransport", "HTTPTransport", "PixivAsyncHTTPTransport")
+__all__ = (
+    "BypassPixivAsyncHTTPTransport",
+    "DNSResolver",
+    "HTTPTransport",
+    "PixivAsyncHTTPTransport",
+)
 
 
 logger = getLogger(__name__)
