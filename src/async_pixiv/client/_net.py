@@ -2,6 +2,9 @@ import asyncio
 from logging import getLogger
 
 from httpx import (
+    URL as HTTPXURL,
+)
+from httpx import (
     AsyncBaseTransport,
     QueryParams,
     Request,
@@ -20,6 +23,9 @@ from httpx._types import (
     QueryParamTypes,
     TimeoutTypes,
 )
+
+# noinspection PyProtectedMember
+from httpx._utils import URLPattern
 from yarl import URL
 
 from async_pixiv._compat import json_loads as default_json_loads
@@ -59,9 +65,6 @@ class AsyncClient(DefaultAsyncClient):
         retry: Retry | None = None,
         json_loads: callable = default_json_loads,
     ) -> None:
-        # noinspection PyProtectedMember
-        from httpx._utils import URLPattern
-
         super().__init__(
             timeout=timeout,
             trust_env=trust_env,
@@ -180,17 +183,15 @@ class AsyncClient(DefaultAsyncClient):
         headers: HeaderTypes | None = None,
         **kwargs,
     ) -> Request:
-        from httpx import URL as httpx_URL
-
         str_url = str(url)
         if isinstance(url, URL):
             yarl_url = url
-            httpx_url = httpx_URL(str_url)
-        elif isinstance(url, httpx_URL):
+            httpx_url = HTTPXURL(str_url)
+        elif isinstance(url, HTTPXURL):
             httpx_url = url
-            yarl_url = httpx_URL(str_url)
+            yarl_url = URL(str_url)
         else:
-            httpx_url = httpx_URL(str_url)
+            httpx_url = HTTPXURL(str_url)
             yarl_url = URL(str_url)
 
         headers = dict(filter(lambda x: x[1], (headers or {}).items()))

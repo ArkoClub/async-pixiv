@@ -19,7 +19,7 @@ import tzlocal
 from pydantic import AfterValidator, PlainValidator
 from yarl import URL as _URL
 
-from async_pixiv.utils.context import get_timezone
+from async_pixiv.utils.context import get_pixiv_client, get_timezone
 from async_pixiv.utils.magic import curses
 
 __all__ = (
@@ -131,8 +131,6 @@ async def download(
     client: Optional["PixivClient"] = None,
 ) -> bytes:
     if client is None:
-        from async_pixiv.utils.context import get_pixiv_client
-
         client = get_pixiv_client(raise_error=True)
     return await client.download(
         self,

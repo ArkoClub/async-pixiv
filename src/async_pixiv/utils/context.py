@@ -1,6 +1,10 @@
+import warnings
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
+from copy import deepcopy
 from typing import TYPE_CHECKING, Iterator, Optional
+
+from async_pixiv.error import ClientNotFindError
 
 if TYPE_CHECKING:
     from pytz.tzinfo import DstTzInfo
@@ -41,9 +45,6 @@ def async_do_nothing() -> Iterator[None]:
 
 @contextmanager
 def no_warning() -> Iterator[None]:
-    import warnings
-    from copy import deepcopy
-
     filters = deepcopy(warnings.filters)
     try:
         warnings.filterwarnings("ignore")
@@ -68,8 +69,6 @@ def get_pixiv_client(raise_error: bool = False) -> Optional["PixivClient"]:
     try:
         return PixivClientContext.get()
     except LookupError:
-        from async_pixiv.error import ClientNotFindError
-
         if not raise_error:
             return None
         raise ClientNotFindError() from None

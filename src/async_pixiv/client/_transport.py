@@ -7,6 +7,8 @@ import httpcore
 from httpx import (
     AsyncByteStream,
     AsyncClient,
+    ConnectTimeout,
+    HTTPError,
     SyncByteStream,
 )
 from httpx import (
@@ -116,8 +118,6 @@ class DNSResolver:
         return None
 
     async def require_app_api_hosts(self, hostname: str) -> str | None:
-        from httpx import ConnectTimeout, HTTPError
-
         params = {
             "ct": "application/dns-json",
             "name": hostname,

@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from enum import Enum
 from logging import getLogger
@@ -26,6 +27,9 @@ from httpx._types import (
     QueryParamTypes as _QueryParamTypes,
 )
 
+# noinspection PyProtectedMember
+from httpx._utils import get_environment_proxies
+
 from async_pixiv.error import RateLimitError
 from async_pixiv.utils.bypass import BypassAsyncHTTPTransport
 from async_pixiv.utils.enums import Enum as PixivEnum
@@ -46,9 +50,6 @@ def get_proxy_map(
 ) -> dict[str, Proxy | None]:
     if proxies is None:
         if allow_env_proxies:
-            # noinspection PyProtectedMember
-            from httpx._utils import get_environment_proxies
-
             return {
                 key: None if url is None else Proxy(url=url)
                 for key, url in get_environment_proxies().items()
@@ -155,8 +156,6 @@ class Net:
         auth: Union["AuthTypes", "UseClientDefault", None] = USE_CLIENT_DEFAULT,
         follow_redirects: Union[bool, "UseClientDefault"] = True,
     ) -> Response:
-        import asyncio
-
         error: BaseException | None = None
         while (n := 0) < self._retry:
             async with self._limiter:
