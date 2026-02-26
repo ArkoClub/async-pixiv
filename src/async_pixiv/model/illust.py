@@ -276,21 +276,7 @@ class Illust(PixivModel):
             )
 
         metadata = await self.get_ugoira_metadata()
-
-        match quality:
-            case Quality.Large:
-                link = (
-                    metadata.zip_url.large
-                    or metadata.zip_url.medium
-                    or metadata.zip_url.square
-                )
-            case Quality.Medium:
-                link = metadata.zip_url.medium or metadata.zip_url.square
-            case Quality.Square:
-                link = metadata.zip_url.square
-            case _:
-                link = metadata.zip_url.link
-        link = metadata.zip_url.link if link is None else link
+        link = self._resolve_ugoira_link(metadata, quality)
 
         data = await self._pixiv_client.download(
             link, progress_handler=progress_handler
@@ -304,27 +290,58 @@ class Illust(PixivModel):
         zip_file = ZipFile(BytesIO(data))
 
         if result_type == "frame":
-            frames = []
-            for frame in metadata.frames:
-                with zip_file.open(frame.file) as f:
-                    frames.append(f.read())
-            return frames
+            return self._extract_frames(zip_file, metadata)
 
+        return await self._convert_ugoira(zip_file, metadata, result_type)
+
+    @staticmethod
+    def _resolve_ugoira_link(metadata: UgoiraMetadata, quality: Quality):
+        match quality:
+            case Quality.Large:
+                link = (
+                    metadata.zip_url.large
+                    or metadata.zip_url.medium
+                    or metadata.zip_url.square
+                )
+            case Quality.Medium:
+                link = metadata.zip_url.medium or metadata.zip_url.square
+            case Quality.Square:
+                link = metadata.zip_url.square
+            case _:
+                link = metadata.zip_url.link
+        return metadata.zip_url.link if link is None else link
+
+    @staticmethod
+    def _extract_frames(zip_file: ZipFile, metadata: UgoiraMetadata) -> list[bytes]:
+        frames = []
+        for frame in metadata.frames:
+            with zip_file.open(frame.file) as f:
+                frames.append(f.read())
+        return frames
+
+    @staticmethod
+    async def _convert_ugoira(
+        zip_file: ZipFile,
+        metadata: UgoiraMetadata,
+        result_type: UGOIRA_RESULT_TYPE,
+    ) -> bytes:
         async with TemporaryDirectory() as directory:
             directory = Path(directory).resolve()
-            connect_config_file_path = directory / "list.txt"
-            async with async_open(connect_config_file_path, mode="w") as list_file:
+            config_path = directory / "list.txt"
+            async with async_open(config_path, mode="w") as list_file:
                 for frame in metadata.frames:
                     with zip_file.open(frame.file) as frame_zip_file:
-                        frame_file_path = directory / frame.file
-                        async with async_open(frame_file_path, mode="wb") as frame_file:
+                        frame_path = directory / frame.file
+                        async with async_open(frame_path, mode="wb") as frame_file:
                             await frame_file.write(frame_zip_file.read())
                     await list_file.write(
-                        f"file {frame_file_path.resolve()}\n".replace("\\", "/")
+                        f"file {frame_path.resolve()}\n".replace("\\", "/")
                     )
                     await list_file.write(f"duration {frame.delay / 1000}\n")
             del zip_file
+
             event = Event()
+            input_path = str(config_path.resolve())
             if result_type == "mp4":
                 output_path = directory / "out.mp4"
                 # noinspection SpellCheckingInspection
@@ -343,7 +360,7 @@ class Illust(PixivModel):
                         "[v1]palettegen[pal];"
                         "[v2][pal]paletteuse=dither=sierra2_4a",
                     )
-                    .option("i", str(connect_config_file_path.resolve()))
+                    .option("i", input_path)
                     .option("pix_fmt", "yuv420p10le")
                     .option("c:v", "libx265")
                     .option("c:a", "aac")
@@ -359,7 +376,7 @@ class Illust(PixivModel):
                     .option("y")
                     .option("f", "concat")
                     .option("safe", 0)
-                    .option("i", str(connect_config_file_path.resolve()))
+                    .option("i", input_path)
                     .option(
                         "filter_complex",
                         "colormatrix=bt470bg:bt709[main];"
