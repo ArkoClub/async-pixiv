@@ -20,7 +20,14 @@ __all__ = ("NullDictValidator", "PixivModel")
 # noinspection Pydantic
 class PixivModel(BaseModel):
     model_config = ConfigDict(validate_default=True, validate_assignment=True)
+    _pixiv_client_value: Any = PrivateAttr(None)
     _pixiv_client_ref: ReferenceType["PixivClient"] | None = PrivateAttr(None)
+
+    def __init__(self, /, **data: Any) -> None:
+        client = data.pop("_pixiv_client", None)
+        super().__init__(**data)
+        if client is not None:
+            self._bind_client(client)
 
     @classmethod
     def model_validate(
@@ -55,6 +62,7 @@ class PixivModel(BaseModel):
             return
         _visited.add(id(self))
 
+        self._pixiv_client_value = client
         self._pixiv_client_ref = ref(client)
         for field_name in self.__class__.model_fields:
             value = getattr(self, field_name)
@@ -82,6 +90,8 @@ class PixivModel(BaseModel):
 
     @property
     def _pixiv_client(self) -> "PixivClient" | None:
+        if self._pixiv_client_value is not None:
+            return self._pixiv_client_value
         if self._pixiv_client_ref is not None:
             client = self._pixiv_client_ref()
             if client is not None:

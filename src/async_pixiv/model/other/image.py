@@ -15,9 +15,8 @@ class PixivImage(ABC, PixivModel):
         pass
 
     async def download(self, *args, **kwargs):
-        if kwargs.get("client") is None:
-            kwargs["client"] = self._require_client()
-        return await self.link.download(*args, **kwargs)
+        client = kwargs.pop("client", None) or self._require_client()
+        return await client.download(self.link, *args, **kwargs)
 
 
 class QualityUrl(PixivImage):

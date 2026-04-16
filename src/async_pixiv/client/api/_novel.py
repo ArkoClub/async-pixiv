@@ -1,13 +1,21 @@
+from collections.abc import Sequence
+
 from pydantic import Field
 
 # noinspection PyProtectedMember
 from async_pixiv._compat import json_loads, re
 from async_pixiv.client.api._abc import APIBase
 from async_pixiv.const import APP_API_HOST
-from async_pixiv.model import PixivModel
+from async_pixiv.model import PixivModel, SearchAIType
 from async_pixiv.model.novel import Novel, NovelText
-from async_pixiv.model.other.enums import SearchFilter, SearchShort, SearchTarget
+from async_pixiv.model.other.enums import (
+    SearchDuration,
+    SearchFilter,
+    SearchShort,
+    SearchTarget,
+)
 from async_pixiv.model.other.result import PageResult
+from async_pixiv.typedefs import DurationTypes, ShortTypes
 
 __all__ = ("NovelAPI", "NovelDetail", "NovelPageResult")
 
@@ -20,21 +28,24 @@ class NovelPageResult(PageResult[Novel]):
     previews: list[Novel] = Field([], alias="novels")
 
 
-class NovelAPI(APIBase):
+class NovelAPI(APIBase[NovelDetail, NovelPageResult]):
     _detail_model = NovelDetail
     _page_result_model = NovelPageResult
 
+    async def __call__(self, id: int) -> NovelDetail:
+        return await super().__call__(id)
+
     async def search(
         self,
-        words,
+        words: str | Sequence[str],
         *,
-        sort=SearchShort.DateDecrease,
-        duration=None,
-        target=SearchTarget.TAGS_PARTIAL,
-        offset=None,
-        search_ai_type=None,
-        merge_plain_keyword_results=True,
-        include_translated_tag_results=True,
+        sort: ShortTypes = SearchShort.DateDecrease,
+        duration: SearchDuration | DurationTypes | None = None,
+        target: SearchTarget | None = SearchTarget.TAGS_PARTIAL,
+        offset: int | None = None,
+        search_ai_type: SearchAIType | None = None,
+        merge_plain_keyword_results: bool = True,
+        include_translated_tag_results: bool = True,
         **kwargs,
     ) -> NovelPageResult:
         # noinspection PyTypeChecker
@@ -51,7 +62,7 @@ class NovelAPI(APIBase):
         )
 
     # noinspection PyShadowingBuiltins
-    async def detail(self, id):
+    async def detail(self, id: int) -> NovelDetail:
         response = await self._pixiv_client.request_get(
             APP_API_HOST / f"v2/{self.type}/detail",
             params={f"{self.type}_id": id, "filter": SearchFilter.ANDROID},
@@ -63,7 +74,7 @@ class NovelAPI(APIBase):
         )
 
     # noinspection PyShadowingBuiltins
-    async def text(self, id, *, viewer_version="20221031_ai"):
+    async def text(self, id: int, *, viewer_version: str = "20221031_ai") -> NovelText:
         response = await self._pixiv_client.request_get(
             APP_API_HOST / "webview/v2/novel",
             params={"id": id, "viewer_version": viewer_version},
@@ -109,3 +120,6 @@ class NovelAPI(APIBase):
             json_data,
             _pixiv_client=self._pixiv_client,
         )
+
+    async def recommended(self) -> NovelPageResult:
+        return await super().recommended()

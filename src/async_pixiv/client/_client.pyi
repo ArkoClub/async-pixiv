@@ -1,5 +1,4 @@
 import typing
-from contextvars import Token
 from io import BytesIO
 
 # noinspection PyProtectedMember
@@ -11,6 +10,7 @@ from httpx._types import (
     CookieTypes,
     HeaderTypes,
     ProxyTypes,
+    QueryParamTypes,
     RequestContent,
     RequestData,
     RequestExtensions,
@@ -23,43 +23,25 @@ from httpx._types import (
 from pytz.tzinfo import DstTzInfo
 from yarl import URL
 
-from async_pixiv.client._net import AsyncClient
 from async_pixiv.client._response import Response
-
-# noinspection PyProtectedMember
 from async_pixiv.client.api._illust import IllustAPI
-
-# noinspection PyProtectedMember
 from async_pixiv.client.api._novel import NovelAPI
-
-# noinspection PyProtectedMember
 from async_pixiv.client.api._user import UserAPI
 from async_pixiv.model.user import Account
 from async_pixiv.typedefs import EnumType, ProgressHandler, StrPath
 from async_pixiv.utils.rate_limiter import RateLimiter
 
-try:
-    from orjson import loads as default_json_loads
-except ImportError:
-    from json import loads as default_json_loads
-
 __all__ = ("PixivClient",)
 
-QueryParamTypes = typing.Union[QueryParamTypes, EnumType]
+QueryParamTypes = QueryParamTypes | EnumType
 
 class PixivClientNet:
-    _client: AsyncClient
+    access_token: str | None
+    refresh_token: str | None
 
-    access_token: str | None = None
-    refresh_token: str | None = None
-
-    def _update_header(self, headers: HeaderTypes | None = None) -> HeaderTypes:
-        pass
     @property
-    def is_closed(self) -> bool:
-        pass
-    async def close(self) -> None:
-        pass
+    def is_closed(self) -> bool: ...
+    async def close(self) -> None: ...
     async def request(
         self,
         method: str,
@@ -76,8 +58,7 @@ class PixivClientNet:
         follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
         timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
         extensions: RequestExtensions | None = None,
-    ) -> Response:
-        pass
+    ) -> Response: ...
     async def request_get(
         self,
         url: URLTypes | URL,
@@ -89,8 +70,7 @@ class PixivClientNet:
         follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
         timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
         extensions: RequestExtensions | None = None,
-    ) -> Response:
-        pass
+    ) -> Response: ...
     async def request_options(
         self,
         url: URLTypes | URL,
@@ -102,8 +82,7 @@ class PixivClientNet:
         follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
         timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
         extensions: RequestExtensions | None = None,
-    ) -> Response:
-        pass
+    ) -> Response: ...
     async def request_head(
         self,
         url: URLTypes | URL,
@@ -115,8 +94,7 @@ class PixivClientNet:
         follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
         timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
         extensions: RequestExtensions | None = None,
-    ) -> Response:
-        pass
+    ) -> Response: ...
     async def request_post(
         self,
         url: URLTypes | URL,
@@ -132,8 +110,7 @@ class PixivClientNet:
         follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
         timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
         extensions: RequestExtensions | None = None,
-    ) -> Response:
-        pass
+    ) -> Response: ...
     async def request_put(
         self,
         url: URLTypes | URL,
@@ -149,8 +126,7 @@ class PixivClientNet:
         follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
         timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
         extensions: RequestExtensions | None = None,
-    ) -> Response:
-        pass
+    ) -> Response: ...
     async def request_patch(
         self,
         url: URLTypes | URL,
@@ -166,8 +142,7 @@ class PixivClientNet:
         follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
         timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
         extensions: RequestExtensions | None = None,
-    ) -> Response:
-        pass
+    ) -> Response: ...
     async def request_delete(
         self,
         url: URLTypes | URL,
@@ -179,8 +154,7 @@ class PixivClientNet:
         follow_redirects: bool | UseClientDefault = USE_CLIENT_DEFAULT,
         timeout: TimeoutTypes | UseClientDefault = USE_CLIENT_DEFAULT,
         extensions: RequestExtensions | None = None,
-    ) -> Response:
-        pass
+    ) -> Response: ...
     async def download(
         self,
         url: URL | str,
@@ -191,17 +165,14 @@ class PixivClientNet:
         output: StrPath | BytesIO | str | None = None,
         chunk_size: int | None = None,
         progress_handler: ProgressHandler | None = None,
-    ) -> bytes | StrPath | BytesIO:
-        pass
+    ) -> bytes | StrPath | BytesIO: ...
 
 class PixivClient(PixivClientNet):
-    _client_token: Token[PixivClient]
-    _timezone_token: Token[DstTzInfo]
-
     account: Account | None
-
-    # property
     is_logged: bool
+    USER: UserAPI
+    ILLUST: IllustAPI
+    NOVEL: NovelAPI
 
     def __init__(
         self,
@@ -213,17 +184,10 @@ class PixivClient(PixivClientNet):
         bypass: bool = False,
         retry_times: int = 5,
         retry_sleep: float = 1,
-        json_loads: callable = default_json_loads,
+        json_loads=...,
         timezone: DstTzInfo | None = None,
-    ):
-        pass
+    ) -> None: ...
     @property
-    def accept_language(self) -> str:
-        pass
-    async def login_with_token(self, token: str | None = None) -> Account:
-        pass
-    async def close(self) -> None:
-        pass
-    USER: UserAPI
-    ILLUST: IllustAPI
-    NOVEL: NovelAPI
+    def accept_language(self) -> str: ...
+    async def login_with_token(self, token: str | None = None) -> Account: ...
+    async def close(self) -> None: ...

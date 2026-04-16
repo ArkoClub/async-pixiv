@@ -46,7 +46,8 @@ class PixivAsyncHTTPTransport(DefaultAsyncHTTPTransport):
         self._json_loads = json_loads
 
     async def handle_async_request(self, request) -> Response:
-        assert isinstance(request.stream, AsyncByteStream)
+        if not isinstance(request.stream, AsyncByteStream):
+            raise TypeError("request.stream must be an AsyncByteStream")
 
         req = httpcore.Request(
             method=request.method,
@@ -63,7 +64,8 @@ class PixivAsyncHTTPTransport(DefaultAsyncHTTPTransport):
         with map_httpcore_exceptions():
             resp = await self._pool.handle_async_request(req)
 
-        assert isinstance(resp.stream, AsyncIterable)
+        if not isinstance(resp.stream, AsyncIterable):
+            raise TypeError("resp.stream must be an AsyncIterable")
 
         return Response(
             status_code=resp.status,
@@ -196,7 +198,8 @@ class BypassPixivAsyncHTTPTransport(PixivAsyncHTTPTransport):
 class HTTPTransport(DefaultHTTPTransport):
     # noinspection PyProtectedMember
     def handle_request(self, request):
-        assert isinstance(request.stream, SyncByteStream)
+        if not isinstance(request.stream, SyncByteStream):
+            raise TypeError("request.stream must be a SyncByteStream")
 
         req = httpcore.Request(
             method=request.method,
@@ -213,7 +216,8 @@ class HTTPTransport(DefaultHTTPTransport):
         with map_httpcore_exceptions():
             resp = self._pool.handle_request(req)
 
-        assert isinstance(resp.stream, Iterable)
+        if not isinstance(resp.stream, Iterable):
+            raise TypeError("resp.stream must be an Iterable")
 
         return Response(
             status_code=resp.status,

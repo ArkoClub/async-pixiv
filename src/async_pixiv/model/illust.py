@@ -169,12 +169,12 @@ class Illust(PixivModel):
                 or image_urls.original
                 or image_urls.square
             )
-        return await link.download(
+        return await self._require_client().download(
+            link,
             "GET",
             output=output,
             chunk_size=chunk_size,
             progress_handler=progress_handler,
-            client=self._require_client(),
         )
 
     async def download_all(

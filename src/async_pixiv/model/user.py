@@ -1,5 +1,5 @@
 import enum
-from datetime import date
+from datetime import date as date_cls
 from functools import cached_property
 from typing import Annotated
 
@@ -65,7 +65,9 @@ class UserGender(Enum):
 
 class UserBirthday(BaseModel):
     year: (
-        Annotated[int, annotated_types.Gt(0), annotated_types.Le(date.today().year + 1)]
+        Annotated[
+            int, annotated_types.Gt(0), annotated_types.Le(date_cls.today().year + 1)
+        ]
         | None
     ) = None
     month: Annotated[int, annotated_types.Ge(1), annotated_types.Le(12)] | None = None
@@ -87,8 +89,15 @@ class UserBirthday(BaseModel):
             "" if self.year is None else f"{self.year}-"
         ) + f"{self.month}-{self.day}"
 
-    def to_date(self) -> date:
-        return date(year=self.year or date.today().year, month=self.month, day=self.day)
+    def to_date(self) -> date_cls:
+        return date_cls(
+            year=self.year or date_cls.today().year,
+            month=self.month,
+            day=self.day,
+        )
+
+    def date(self) -> date_cls:
+        return self.to_date()
 
 
 class UserJobType(Enum):
