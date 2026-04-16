@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import asyncio
 import os
-from inspect import iscoroutinefunction
+from inspect import isawaitable
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -125,10 +127,9 @@ class PixivClientNet:
         async def handle_progress(_uploaded, _total, _progress_handler):
             if _progress_handler is None:
                 return
-            if iscoroutinefunction(_progress_handler):
-                await _progress_handler(_uploaded, _total)
-            else:
-                _progress_handler(_uploaded, _total)
+            result = _progress_handler(_uploaded, _total)
+            if isawaitable(result):
+                await result
 
         def add_handle_progress_task(_uploaded, _total):
             task = asyncio.create_task(
@@ -136,6 +137,10 @@ class PixivClientNet:
             )
             _background_tasks.add(task)
             task.add_done_callback(_background_tasks.discard)
+
+        async def finish_progress_tasks():
+            if _background_tasks:
+                await asyncio.gather(*tuple(_background_tasks))
 
         chunk_size = chunk_size or 2**20
         async with self._client.stream(
@@ -150,15 +155,19 @@ class PixivClientNet:
                 add_handle_progress_task(uploaded, total)
 
             if output is None:
-                return await self._download_to_bytes(response, chunk_size, add_progress)
+                data = await self._download_to_bytes(response, chunk_size, add_progress)
+                await finish_progress_tasks()
+                return data
 
             if isinstance(output, BytesIO):
-                return await self._download_to_buffer(
+                data = await self._download_to_buffer(
                     response,
                     output,
                     chunk_size,
                     add_progress,
                 )
+                await finish_progress_tasks()
+                return data
 
             output_path = self._prepare_output_path(output, url)
             await self._download_to_path(
@@ -167,12 +176,13 @@ class PixivClientNet:
                 chunk_size,
                 add_progress,
             )
+            await finish_progress_tasks()
             return output_path
 
 
 # noinspection PyPropertyDefinition
 class PixivClient(PixivClientNet):
-    account = None
+    account: Account | None = None
     USER: UserAPI
     ILLUST: IllustAPI
     NOVEL: NovelAPI
@@ -216,7 +226,7 @@ class PixivClient(PixivClientNet):
         self.NOVEL = NovelAPI(self)
         self.timezone = timezone or tzlocal.get_localzone()
 
-    async def login_with_token(self, token=None) -> Account:
+    async def login_with_token(self, token: str | None = None) -> Account:
         if token is None:
             token = os.environ["PIXIV_TOKEN"]
 
@@ -233,7 +243,7 @@ class PixivClient(PixivClientNet):
         data = response.json()
         self.access_token = data["access_token"]
         self.refresh_token = data["refresh_token"]
-        self.account = Account.model_validate(data["user"])
+        self.account = Account.model_validate(data["user"], _pixiv_client=self)
 
         return self.account
 

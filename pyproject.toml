@@ -88,6 +88,11 @@ ignore = [
     "UP035",   # deprecated-import (compatibility)
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"src/async_pixiv/client/_client.pyi" = ["ASYNC109"]
+"src/async_pixiv/utils/net.py" = ["ASYNC109"]
+"tests/*.py" = ["S101"]
+
 [tool.ruff.format]
 quote-style = "double"
 

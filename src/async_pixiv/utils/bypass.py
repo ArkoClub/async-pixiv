@@ -19,7 +19,7 @@ __all__ = ("BypassAsyncHTTPTransport", "DNSResolver")
 
 # noinspection SpellCheckingInspection
 class BypassAsyncHTTPTransport(AsyncHTTPTransport):
-    """重写 PixivAsyncHTTPTransport 的 handle_async_request 方法，以便在请求前解析域名。
+    """重写 PixivAsyncHTTPTransport 的 handle_async_request 方法, 以便在请求前解析域名。
 
     灵感来源于:
 

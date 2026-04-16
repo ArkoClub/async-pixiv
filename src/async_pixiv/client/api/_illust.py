@@ -1,12 +1,14 @@
 import datetime
+from collections.abc import Sequence
 
 from pydantic import Field
 
 from async_pixiv.client.api._abc import APIBase
 from async_pixiv.const import APP_API_HOST
 from async_pixiv.model import Illust, PixivModel, SearchAIType
-from async_pixiv.model.other.enums import SearchShort, SearchTarget
+from async_pixiv.model.other.enums import SearchDuration, SearchShort, SearchTarget
 from async_pixiv.model.other.result import PageResult, UgoiraMetadataResult
+from async_pixiv.typedefs import DurationTypes, ShortTypes
 
 __all__ = ("IllustAPI", "IllustDetail", "IllustPageResult")
 
@@ -21,26 +23,32 @@ class IllustPageResult(PageResult[Illust]):
     show_ai: bool = False
 
 
-class IllustAPI(APIBase):
+class IllustAPI(APIBase[IllustDetail, IllustPageResult]):
     _detail_model = IllustDetail
     _page_result_model = IllustPageResult
 
+    async def __call__(self, id: int) -> IllustDetail:
+        return await super().__call__(id)
+
+    async def detail(self, id: int) -> IllustDetail:
+        return await super().detail(id)
+
     async def search(
         self,
-        words,
+        words: str | Sequence[str],
         *,
-        sort=SearchShort.DateDecrease,
-        target=SearchTarget.TAGS_PARTIAL,
-        search_ai_type=None,
-        duration=None,
+        sort: ShortTypes = SearchShort.DateDecrease,
+        target: SearchTarget | None = SearchTarget.TAGS_PARTIAL,
+        search_ai_type: SearchAIType | None = None,
+        duration: SearchDuration | DurationTypes | None = None,
         start_date: datetime.date | None = None,
         end_date: datetime.date | None = None,
-        offset=None,
+        offset: int | None = None,
         **kwargs,
     ) -> IllustPageResult:
         if start_date is not None and not isinstance(start_date, datetime.date):
             raise TypeError("start_date must be a datetime.date or None")
-        if end_date is not None and not isinstance(end_date, (datetime.date, None)):
+        if end_date is not None and not isinstance(end_date, datetime.date):
             raise TypeError("end_date must be a datetime.date or None")
         if search_ai_type is not None and not isinstance(search_ai_type, SearchAIType):
             raise TypeError("search_ai_type must be a SearchAIType or None")
@@ -65,6 +73,9 @@ class IllustAPI(APIBase):
             offset=offset,
             **kwargs,
         )
+
+    async def recommended(self) -> IllustPageResult:
+        return await super().recommended()
 
     # noinspection PyShadowingBuiltins
     async def ugoira_metadata(self, id: int) -> UgoiraMetadataResult:

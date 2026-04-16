@@ -65,7 +65,7 @@ async def main():
         f"是否为 R18 作品：{'是' if await illust.is_r18() else '否'}",
         sep='\n'
     )
-    file_data = illust.link.download() # 下载
+    file_data = await client.download(illust.link) # 下载
     breakpoint()
 
     # 下载动图

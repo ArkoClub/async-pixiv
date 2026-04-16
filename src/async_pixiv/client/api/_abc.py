@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import TYPE_CHECKING, ClassVar, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Sequence
 
 from pydantic_core._pydantic_core import ValidationError
 
@@ -19,10 +19,10 @@ __all__ = ("APIBase",)
 
 
 # noinspection PyShadowingBuiltins,PyPropertyDefinition
-class APIBase[T](ABC):
+class APIBase[TDetail: PixivModel, TPage: PageResult](ABC):
     _pixiv_client: PixivClient
-    _detail_model: ClassVar[type[PixivModel] | None] = None
-    _page_result_model: ClassVar[type[PageResult] | None] = None
+    _detail_model: ClassVar[type[TDetail] | None] = None
+    _page_result_model: ClassVar[type[TPage] | None] = None
 
     @property
     def type(self) -> str:
@@ -34,24 +34,24 @@ class APIBase[T](ABC):
     ) -> None:
         self._pixiv_client = client
 
-    async def __call__(self, id: int) -> T:
+    async def __call__(self, id: int) -> TDetail:
         return await self.detail(id)
 
-    def _get_detail_model(self) -> type[PixivModel]:
+    def _get_detail_model(self) -> type[TDetail]:
         if self._detail_model is None:
             raise RuntimeError(
                 f"No detail model registered for {self.__class__.__name__}"
             )
         return self._detail_model
 
-    def _get_page_result_model(self) -> type[PageResult]:
+    def _get_page_result_model(self) -> type[TPage]:
         if self._page_result_model is None:
             raise RuntimeError(
                 f"No page result model registered for {self.__class__.__name__}"
             )
         return self._page_result_model
 
-    async def detail(self, id: int) -> T:
+    async def detail(self, id: int) -> TDetail:
         response = await self._pixiv_client.request_get(
             APP_API_HOST / f"v1/{self.type}/detail",
             params={f"{self.type}_id": id, "filter": SearchFilter.ANDROID},
@@ -73,8 +73,8 @@ class APIBase[T](ABC):
         duration: DurationTypes | None = None,
         offset: int | None = None,
         search_ai_type: SearchAIType | None = None,
-        **kwargs,
-    ) -> PageResult:
+        **kwargs: Any,
+    ) -> TPage:
         response = await self._pixiv_client.request_get(
             APP_API_HOST / f"v1/search/{self.type}",
             params={
@@ -94,7 +94,7 @@ class APIBase[T](ABC):
             _pixiv_client=self._pixiv_client,
         )
 
-    async def recommended(self) -> PageResult:
+    async def recommended(self) -> TPage:
         response = await self._pixiv_client.request_get(
             APP_API_HOST / f"v1/{self.type}/recommended"
         )
